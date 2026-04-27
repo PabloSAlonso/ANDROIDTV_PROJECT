@@ -8,6 +8,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
 import net.emite.androidtv_project.data.remote.api.AuthApi
+import net.emite.androidtv_project.data.remote.api.SlideshowApi
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
@@ -59,4 +60,8 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideAuthApi(retrofit: Retrofit): AuthApi = retrofit.create(AuthApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideSlideshowApi(retrofit: Retrofit): SlideshowApi = retrofit.create(SlideshowApi::class.java)
 }

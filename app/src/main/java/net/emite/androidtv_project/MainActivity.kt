@@ -14,6 +14,7 @@ import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Text
 import dagger.hilt.android.AndroidEntryPoint
 import net.emite.androidtv_project.presentation.screens.LoginScreen
+import net.emite.androidtv_project.presentation.screens.SlideshowScreen
 import net.emite.androidtv_project.presentation.theme.AndroidTVProjectTheme
 import net.emite.androidtv_project.presentation.viewmodel.MainViewModel
 
@@ -42,10 +43,8 @@ class MainActivity : ComponentActivity() {
                         })
                     }
                     true -> {
-                        // Aquí irá la pantalla del Slideshow
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(text = "Slideshow (Próximamente)")
-                        }
+                        // Pantalla del Slideshow activa
+                        SlideshowScreen()
                     }
                 }
             }
