@@ -22,7 +22,7 @@ class SlideshowRepositoryImpl @Inject constructor(
             val items = response.screens.values.map { screen ->
                 SlideshowItem(
                     id = screen.id,
-                    imageUrl = "https://$instancia.tegestiona.es/uploads/screens/${screen.file}",
+                    imageUrl = "https://$instancia.tegestiona.es/${screen.file}",
                     durationSeconds = screen.duracion?.toIntOrNull() ?: 10
                 )
             }
