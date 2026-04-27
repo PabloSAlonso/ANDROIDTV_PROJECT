@@ -23,6 +23,9 @@ hiltNavigationCompose = "1.2.0"
 # Lifecycle
 lifecycle = "2.8.7"
 
+# Room
+room = "2.6.1"
+
 # Android TV
 tvFoundation = "1.0.0-alpha11"
 tvMaterial = "1.0.0"
@@ -60,6 +63,11 @@ hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-com
 # Lifecycle
 lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
+
+# Room
+androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
