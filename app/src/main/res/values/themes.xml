@@ -1,4 +1,3 @@
 <resources>
-
-    <style name="Theme.ANDROIDTV_PROJECT" parent="@style/Theme.Leanback" />
+    <style name="Theme.ANDROIDTV_PROJECT" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>

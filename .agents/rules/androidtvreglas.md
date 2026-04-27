@@ -5,8 +5,6 @@ description: Reglas y estructura del proyecto android tv
 
 1. Lenguaje y stack base
 
-Te recomendaría sin dudar:
-
 Lenguaje: Kotlin
 UI: Jetpack Compose (también funciona en Android TV)
 Arquitectura: MVVM o incluso mejor, Clean Architecture ligera
