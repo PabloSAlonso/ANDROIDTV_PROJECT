@@ -17,6 +17,14 @@ import androidx.tv.material3.*
 import net.emite.androidtv_project.presentation.viewmodel.SlideshowUiState
 import net.emite.androidtv_project.presentation.viewmodel.SlideshowViewModel
 
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.KeyEventType
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun SlideshowScreen(
@@ -25,6 +33,8 @@ fun SlideshowScreen(
     val uiState by viewModel.uiState.collectAsState()
     val currentItem by viewModel.currentItem.collectAsState()
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var logoutJob by remember { mutableStateOf<Job?>(null) }
 
     LaunchedEffect(uiState) {
         val state = uiState
@@ -41,7 +51,35 @@ fun SlideshowScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .onKeyEvent { event ->
+                if (event.key == Key.Back || event.key == Key.Escape) {
+                    when (event.type) {
+                        KeyEventType.KeyDown -> {
+                            if (logoutJob == null) {
+                                logoutJob = scope.launch {
+                                    delay(3000) // 3 segundos para logout
+                                    viewModel.logout()
+                                }
+                            }
+                            true
+                        }
+                        KeyEventType.KeyUp -> {
+                            logoutJob?.cancel()
+                            logoutJob = null
+                            true
+                        }
+                        else -> false
+                    }
+                } else {
+                    false
+                }
+            }
+            .focusable(), // Importante para recibir eventos de teclado
+        contentAlignment = Alignment.Center
+    ) {
         when (val state = uiState) {
             is SlideshowUiState.Loading -> {
                 Text("Cargando Slideshow...")

@@ -59,11 +59,21 @@ class SlideshowViewModel @Inject constructor(
     private fun startSlideshowLoop() {
         viewModelScope.launch {
             while (true) {
-                val item = items[currentIndex]
-                _currentItem.value = item
-                delay(item.durationSeconds * 1000L)
-                currentIndex = (currentIndex + 1) % items.size
+                if (items.isNotEmpty()) {
+                    val item = items[currentIndex]
+                    _currentItem.value = item
+                    delay(item.durationSeconds * 1000L)
+                    currentIndex = (currentIndex + 1) % items.size
+                } else {
+                    delay(5000L)
+                }
             }
+        }
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            configRepository.clearConfig()
         }
     }
 }
