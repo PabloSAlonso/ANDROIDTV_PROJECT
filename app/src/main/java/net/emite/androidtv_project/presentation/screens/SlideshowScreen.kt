@@ -22,8 +22,12 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.foundation.focusable
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
@@ -34,7 +38,12 @@ fun SlideshowScreen(
     val currentItem by viewModel.currentItem.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val focusRequester = remember { FocusRequester() }
     var logoutJob by remember { mutableStateOf<Job?>(null) }
+
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
 
     LaunchedEffect(uiState) {
         val state = uiState
@@ -77,6 +86,7 @@ fun SlideshowScreen(
                     false
                 }
             }
+            .focusRequester(focusRequester)
             .focusable(), // Importante para recibir eventos de teclado
         contentAlignment = Alignment.Center
     ) {
