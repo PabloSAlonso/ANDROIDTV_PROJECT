@@ -15,6 +15,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.tv.material3.*
+import androidx.compose.material3.CircularProgressIndicator
 import net.emite.androidtv_project.presentation.viewmodel.LoginUiState
 import net.emite.androidtv_project.presentation.viewmodel.LoginViewModel
 
@@ -96,11 +97,11 @@ fun LoginScreen(
         if (uiState is LoginUiState.Loading) {
             CircularProgressIndicator()
         } else {
-            Button(
+            androidx.compose.material3.Button(
                 onClick = { viewModel.login(instancia, correo, password) },
                 modifier = Modifier.width(200.dp)
             ) {
-                Text("Entrar")
+                androidx.compose.material3.Text("Entrar")
             }
         }
 

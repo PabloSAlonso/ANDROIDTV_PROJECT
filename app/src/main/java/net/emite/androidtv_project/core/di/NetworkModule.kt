@@ -1,7 +1,7 @@
 package net.emite.androidtv_project.core.di
 
 import okhttp3.MediaType.Companion.toMediaType
-import retrofit2.converter.kotlinxserialization.asConverterFactory
+import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
