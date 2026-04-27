@@ -1,5 +1,6 @@
 package net.emite.androidtv_project.data.repository_impl
 
+import net.emite.androidtv_project.core.utils.DeviceUtils
 import net.emite.androidtv_project.data.remote.api.SlideshowApi
 import net.emite.androidtv_project.domain.model.SlideshowConfig
 import net.emite.androidtv_project.domain.model.SlideshowItem
@@ -12,8 +13,7 @@ class SlideshowRepositoryImpl @Inject constructor(
     
     override suspend fun getSlideshowConfig(instancia: String): Result<SlideshowConfig> {
         return try {
-            // TODO: Obtener la MAC real del dispositivo. Por ahora usamos una de ejemplo del JSON.
-            val mac = "dca632798fd0" 
+            val mac = DeviceUtils.getMacAddress()
             val url = "https://$instancia.tegestiona.es/pantallas/sync/$mac"
             
             val response = api.getSlideshow(url)
