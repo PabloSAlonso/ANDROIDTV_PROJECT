@@ -79,6 +79,10 @@ dependencies {
     // Image loading
     implementation(libs.coil.compose)
 
+    // Media3 / ExoPlayer
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui)
+
     // Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
