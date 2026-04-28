@@ -5,6 +5,14 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
 import android.util.Log
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,6 +26,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
@@ -37,6 +46,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.emite.androidtv_project.domain.model.MediaType
 import net.emite.androidtv_project.presentation.components.VideoPlayer
+import net.emite.androidtv_project.presentation.theme.DarkBackground
 import net.emite.androidtv_project.presentation.viewmodel.SlideshowUiState
 import net.emite.androidtv_project.presentation.viewmodel.SlideshowViewModel
 
@@ -75,6 +85,7 @@ fun SlideshowScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .background(DarkBackground)
             .onKeyEvent { event ->
                 if (event.key == Key.Back || event.key == Key.Escape) {
                     when (event.type) {
@@ -114,23 +125,41 @@ fun SlideshowScreen(
             }
 
             is SlideshowUiState.Success -> {
-                currentItem?.let { item ->
-                    when (item.type) {
-                        MediaType.IMAGE -> {
-                            AsyncImage(
-                                model = item.mediaUrl,
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
+                AnimatedContent(
+                    targetState = currentItem,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(1200)) togetherWith fadeOut(
+                            animationSpec = tween(1200)
+                        )
+                    },
+                    label = "SlideshowTransition",
+                    modifier = Modifier.fillMaxSize()
+                ) { item ->
+                    item?.let {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            when (it.type) {
+                                MediaType.IMAGE -> {
+                                    AsyncImage(
+                                        model = it.mediaUrl,
+                                        contentDescription = null,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
 
-                        MediaType.VIDEO -> {
-                            VideoPlayer(
-                                mediaUrl = item.mediaUrl,
-                                modifier = Modifier.fillMaxSize(),
-                                onVideoEnded = viewModel::onMediaVideoEnded
-                            )
+                                MediaType.VIDEO -> {
+                                    VideoPlayer(
+                                        mediaUrl = it.mediaUrl,
+                                        modifier = Modifier.fillMaxSize(),
+                                        onVideoEnded = viewModel::onMediaVideoEnded
+                                    )
+                                }
+                            }
                         }
                     }
                 }

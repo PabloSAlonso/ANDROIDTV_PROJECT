@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.collectAsState
@@ -16,6 +17,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import net.emite.androidtv_project.presentation.screens.SetupScreen
 import net.emite.androidtv_project.presentation.screens.SlideshowScreen
 import net.emite.androidtv_project.presentation.theme.AndroidTVProjectTheme
+import net.emite.androidtv_project.presentation.theme.DarkBackground
 import net.emite.androidtv_project.presentation.viewmodel.MainViewModel
 
 @AndroidEntryPoint
@@ -33,7 +35,12 @@ class MainActivity : ComponentActivity() {
                 when (hasInstance) {
                     null -> {
                         // Pantalla de carga inicial mientras comprobamos la DB
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(DarkBackground),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Text(text = "Cargando...")
                         }
                     }
