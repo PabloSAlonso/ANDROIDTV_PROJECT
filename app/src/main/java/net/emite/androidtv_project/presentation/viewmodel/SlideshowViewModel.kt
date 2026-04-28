@@ -4,15 +4,17 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import net.emite.androidtv_project.domain.model.MediaType
 import net.emite.androidtv_project.domain.model.SlideshowConfig
 import net.emite.androidtv_project.domain.model.SlideshowItem
 import net.emite.androidtv_project.domain.repository.ConfigRepository
 import net.emite.androidtv_project.domain.repository.SlideshowRepository
-import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
 
 @HiltViewModel
@@ -28,6 +30,8 @@ class SlideshowViewModel @Inject constructor(
 
     private val _currentItem = MutableStateFlow<SlideshowItem?>(null)
     val currentItem = _currentItem.asStateFlow()
+
+    private val videoCompletionSignal = Channel<Unit>(Channel.CONFLATED)
 
     private var items: List<SlideshowItem> = emptyList()
     private var currentIndex = 0
@@ -70,15 +74,32 @@ class SlideshowViewModel @Inject constructor(
             while (true) {
                 if (items.isNotEmpty()) {
                     val item = items[currentIndex]
-                    Log.d(TAG, "Mostrando diapositiva [${currentIndex + 1}/${items.size}]: ${item.imageUrl} (Duración: ${item.durationSeconds}s)")
+                    Log.d(
+                        TAG,
+                        "Mostrando media [${currentIndex + 1}/${items.size}]: ${item.mediaUrl} (Tipo: ${item.type}, Duración: ${item.durationSeconds}s)"
+                    )
                     _currentItem.value = item
-                    delay(item.durationSeconds * 1000L)
+
+                    when (item.type) {
+                        MediaType.IMAGE -> {
+                            delay(item.durationSeconds * 1000L)
+                        }
+                        MediaType.VIDEO -> {
+                            videoCompletionSignal.tryReceive()
+                            videoCompletionSignal.receive()
+                        }
+                    }
+
                     currentIndex = (currentIndex + 1) % items.size
                 } else {
                     delay(5000L)
                 }
             }
         }
+    }
+
+    fun onMediaVideoEnded() {
+        videoCompletionSignal.trySend(Unit)
     }
 
     fun logout() {
