@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Text
 import dagger.hilt.android.AndroidEntryPoint
-import net.emite.androidtv_project.presentation.screens.LoginScreen
+import net.emite.androidtv_project.presentation.screens.SetupScreen
 import net.emite.androidtv_project.presentation.screens.SlideshowScreen
 import net.emite.androidtv_project.presentation.theme.AndroidTVProjectTheme
 import net.emite.androidtv_project.presentation.viewmodel.MainViewModel
@@ -28,9 +28,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             AndroidTVProjectTheme {
-                val isLoggedIn by mainViewModel.isLoggedIn.collectAsState()
+                val hasInstance by mainViewModel.hasInstance.collectAsState()
 
-                when (isLoggedIn) {
+                when (hasInstance) {
                     null -> {
                         // Pantalla de carga inicial mientras comprobamos la DB
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -38,9 +38,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     false -> {
-                        LoginScreen(onLoginSuccess = {
-                            // Al tener éxito, el StateFlow en MainViewModel se actualizará automáticamente
-                        })
+                        SetupScreen()
                     }
                     true -> {
                         // Pantalla del Slideshow activa

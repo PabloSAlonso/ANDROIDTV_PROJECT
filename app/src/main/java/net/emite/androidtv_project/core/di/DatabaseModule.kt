@@ -22,7 +22,8 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "androidtv_db"
-        ).build()
+        ).fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides

@@ -1,9 +1,12 @@
 package net.emite.androidtv_project.core.utils
 
+import android.util.Log
 import java.net.NetworkInterface
 import java.util.*
 
 object DeviceUtils {
+
+    private const val TAG = "DeviceUtils"
 
     /**
      * Intenta obtener la dirección MAC del dispositivo (wlan0 o eth0).
@@ -21,14 +24,17 @@ object DeviceUtils {
                         for (i in mac.indices) {
                             sb.append(String.format("%02X%s", mac[i], if (i < mac.size - 1) "" else ""))
                         }
-                        return sb.toString().lowercase()
+                        val detectedMac = sb.toString().lowercase()
+                        Log.d(TAG, "MAC detectada (${networkInterface.name}): $detectedMac")
+                        return detectedMac
                     }
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error obteniendo MAC", e)
         }
-        // MAC por defecto para el emulador o si falla la detección real
-        return "dca632798fd0" 
+        val defaultMac = "dca632798fd0"
+        Log.w(TAG, "No se pudo detectar MAC real, usando respaldo: $defaultMac")
+        return defaultMac 
     }
 }

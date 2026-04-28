@@ -1,5 +1,6 @@
 package net.emite.androidtv_project.presentation.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,6 +21,8 @@ class SlideshowViewModel @Inject constructor(
     private val configRepository: ConfigRepository
 ) : ViewModel() {
 
+    private val TAG = "SlideshowVM"
+
     private val _uiState = MutableStateFlow<SlideshowUiState>(SlideshowUiState.Loading)
     val uiState = _uiState.asStateFlow()
 
@@ -37,20 +40,26 @@ class SlideshowViewModel @Inject constructor(
         viewModelScope.launch {
             val config = configRepository.getConfig().firstOrNull()
             if (config != null) {
+                Log.d(TAG, "Cargando slideshow para instancia: ${config.instancia}")
                 val result = slideshowRepository.getSlideshowConfig(config.instancia)
                 result.fold(
                     onSuccess = { slideshowConfig ->
                         items = slideshowConfig.items
+                        Log.d(TAG, "Slideshow cargado con éxito. Items: ${items.size}")
                         _uiState.value = SlideshowUiState.Success(slideshowConfig)
                         if (items.isNotEmpty()) {
                             startSlideshowLoop()
+                        } else {
+                            Log.w(TAG, "La lista de diapositivas está vacía")
                         }
                     },
                     onFailure = {
+                        Log.e(TAG, "Fallo al cargar slideshow", it)
                         _uiState.value = SlideshowUiState.Error(it.message ?: "Error al cargar slideshow")
                     }
                 )
             } else {
+                Log.e(TAG, "No se encontró configuración en la base de datos")
                 _uiState.value = SlideshowUiState.Error("No hay configuración guardada")
             }
         }
@@ -61,6 +70,7 @@ class SlideshowViewModel @Inject constructor(
             while (true) {
                 if (items.isNotEmpty()) {
                     val item = items[currentIndex]
+                    Log.d(TAG, "Mostrando diapositiva [${currentIndex + 1}/${items.size}]: ${item.imageUrl} (Duración: ${item.durationSeconds}s)")
                     _currentItem.value = item
                     delay(item.durationSeconds * 1000L)
                     currentIndex = (currentIndex + 1) % items.size
@@ -72,6 +82,7 @@ class SlideshowViewModel @Inject constructor(
     }
 
     fun logout() {
+        Log.i(TAG, "Ejecutando cierre de sesión (Logout)")
         viewModelScope.launch {
             configRepository.clearConfig()
         }

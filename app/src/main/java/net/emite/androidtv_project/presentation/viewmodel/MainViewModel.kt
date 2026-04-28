@@ -15,8 +15,11 @@ class MainViewModel @Inject constructor(
     private val configRepository: ConfigRepository
 ) : ViewModel() {
 
-    val isLoggedIn: StateFlow<Boolean?> = configRepository.getConfig()
-        .map { it != null }
+    /**
+     * null = cargando, false = sin instancia configurada, true = instancia guardada → ir al Slideshow
+     */
+    val hasInstance: StateFlow<Boolean?> = configRepository.getConfig()
+        .map { config -> config?.instancia?.isNotBlank() == true }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),

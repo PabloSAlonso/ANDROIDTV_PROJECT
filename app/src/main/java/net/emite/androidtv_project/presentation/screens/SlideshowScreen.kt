@@ -1,6 +1,7 @@
 package net.emite.androidtv_project.presentation.screens
 
 import android.app.Activity
+import android.util.Log
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
@@ -51,6 +52,7 @@ fun SlideshowScreen(
             val orientation = state.config.orientation
             val activity = context.findActivity()
             if (activity != null) {
+                Log.d("SlideshowScreen", "Cambiando orientación de pantalla a: $orientation")
                 activity.requestedOrientation = if (orientation == "V") {
                     ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
                 } else {
