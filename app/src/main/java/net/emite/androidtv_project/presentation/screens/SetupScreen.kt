@@ -1,14 +1,21 @@
 package net.emite.androidtv_project.presentation.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -25,8 +32,17 @@ fun SetupScreen(
     var instancia by remember { mutableStateOf("") }
     val saved by viewModel.saved.collectAsState()
 
-    // No necesitamos hacer nada aquí: cuando se guarda la instancia,
-    // MainViewModel detecta el cambio en DB y navega al Slideshow automáticamente.
+    val focusRequester = remember { FocusRequester() }
+    var textFieldFocused by remember { mutableStateOf(false) }
+    var buttonFocused by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        try {
+            focusRequester.requestFocus()
+        } catch (e: Exception) {
+            // Ignore if not attached yet
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -69,9 +85,25 @@ fun SetupScreen(
                     value = instancia,
                     onValueChange = { instancia = it },
                     label = { androidx.compose.material3.Text("Instancia (ej: demo)") },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester)
+                        .onFocusChanged { textFieldFocused = it.isFocused }
+                        .border(
+                            width = if (textFieldFocused) 3.dp else 0.dp,
+                            color = if (textFieldFocused) Color(0xFF42A5F5) else Color.Transparent,
+                            shape = RoundedCornerShape(8.dp)
+                        ),
                     singleLine = true,
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            if (instancia.isNotBlank()) {
+                                viewModel.saveInstancia(instancia)
+                            }
+                        }
+                    )
                 )
 
                 Text(
@@ -83,13 +115,24 @@ fun SetupScreen(
 
                 androidx.compose.material3.Button(
                     onClick = { viewModel.saveInstancia(instancia) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { buttonFocused = it.isFocused }
+                        .border(
+                            width = if (buttonFocused) 3.dp else 0.dp,
+                            color = if (buttonFocused) Color.White else Color.Transparent,
+                            shape = RoundedCornerShape(8.dp)
+                        ),
                     enabled = instancia.isNotBlank(),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = if (buttonFocused) Color(0xFF1976D2) else Color(0xFF1565C0)
+                    )
                 ) {
                     androidx.compose.material3.Text(
                         text = "Guardar y Continuar",
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
                     )
                 }
             }
