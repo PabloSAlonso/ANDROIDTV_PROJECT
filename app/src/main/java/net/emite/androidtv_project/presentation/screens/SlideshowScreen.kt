@@ -16,6 +16,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -100,6 +102,13 @@ fun SlideshowScreen(
                         }
 
                         KeyEventType.KeyUp -> {
+                            if (logoutJob?.isActive == true) {
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "Mantén pulsado ATRÁS durante 3 segundos para salir",
+                                    android.widget.Toast.LENGTH_LONG
+                                ).show()
+                            }
                             logoutJob?.cancel()
                             logoutJob = null
                             true
@@ -121,7 +130,13 @@ fun SlideshowScreen(
             }
 
             is SlideshowUiState.Error -> {
-                Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
+                Text(
+                    text = "Error:\n\n${state.message}",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.titleLarge,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.padding(32.dp)
+                )
             }
 
             is SlideshowUiState.Success -> {

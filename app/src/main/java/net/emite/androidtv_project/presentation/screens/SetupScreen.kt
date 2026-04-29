@@ -1,11 +1,18 @@
 package net.emite.androidtv_project.presentation.screens
 
+import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -14,6 +21,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -23,6 +31,7 @@ import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import net.emite.androidtv_project.presentation.viewmodel.SetupViewModel
+import kotlin.system.exitProcess
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
@@ -35,6 +44,10 @@ fun SetupScreen(
     val focusRequester = remember { FocusRequester() }
     var textFieldFocused by remember { mutableStateOf(false) }
     var buttonFocused by remember { mutableStateOf(false) }
+
+    var menuExpanded by remember { mutableStateOf(false) }
+    var menuFocused by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         try {
@@ -54,6 +67,52 @@ fun SetupScreen(
             ),
         contentAlignment = Alignment.Center
     ) {
+        // Dropdown Menu Opciones
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+        ) {
+            IconButton(
+                onClick = { menuExpanded = true },
+                modifier = Modifier
+                    .onFocusChanged { menuFocused = it.isFocused }
+                    .border(
+                        width = if (menuFocused) 2.dp else 0.dp,
+                        color = if (menuFocused) Color.White else Color.Transparent,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "Opciones",
+                    tint = Color.White
+                )
+            }
+
+            DropdownMenu(
+                expanded = menuExpanded,
+                onDismissRequest = { menuExpanded = false },
+                modifier = Modifier.background(Color(0xFF1B2A3B))
+            ) {
+                DropdownMenuItem(
+                    text = { androidx.compose.material3.Text("Minimizar (Dejar en segundo plano)", color = Color.White) },
+                    onClick = {
+                        menuExpanded = false
+                        (context as? Activity)?.moveTaskToBack(true)
+                    }
+                )
+                DropdownMenuItem(
+                    text = { androidx.compose.material3.Text("Cerrar app completamente", color = Color.White) },
+                    onClick = {
+                        menuExpanded = false
+                        (context as? Activity)?.finishAffinity()
+                        exitProcess(0)
+                    }
+                )
+            }
+        }
+
         androidx.compose.material3.Card(
             modifier = Modifier
                 .width(480.dp)
