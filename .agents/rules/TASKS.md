@@ -3,15 +3,10 @@ trigger: model_decision
 description: Tareas del proyecto en android tv
 ---
 
-Cancelamos tema de MAC, ya que esta capado por android studio, vamos a utilizar el siguiente método: 
+Añadir que la app no se 'duerma' en modo slide
 
-import java.util.UUID
+Kotlin: window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-// Generar un UUID único aleatorio (Versión 4)
-val uniqueID: String = UUID.randomUUID().toString()
+Dar aspecto ideal a la app en base a la foto de drawable: wappa_banner_tv.png (tonos rojizos y blancos) y utilizarla para decoración en la herramienta.
 
-println("UUID Generado: $uniqueID")
-// Ejemplo de salida: "550e8400-e29b-41d4-a716-446655440000"
-
-Generaremos el código solo la primera vez que se ejecute la app en cada dispositivo, se guardará en la base de datos local y utilizará la misma URL acordada anteriormente pero cambiando la MAC por el código, externamente a la app nos encargaremos del backend para que esté sincronizado y tenga sentido, tu encargate primero de enlazar este código aleatorio generado y guardado con la URL destino.
-
+Gestionar sincronización de varios dispositivos, debe haber un contador de segundos global que determine despues de cuantos segundos totales del dia se ha empezado a ejecutar los slides, que sume cuantos segundos tarda segun las imagenes que muestra y la duracion de cada una y que haga esperar a las televisiones posteriores a las q esten ejecutandose para ejecutarse a la vez justo en el inicio del bucle de nuevo.
