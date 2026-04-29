@@ -1,6 +1,8 @@
 package net.emite.androidtv_project.data.repository_impl
 
+import android.content.Context
 import android.util.Log
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.serialization.json.Json
 import net.emite.androidtv_project.core.utils.DeviceUtils
 import net.emite.androidtv_project.data.mapper.toDomainItem
@@ -11,14 +13,15 @@ import net.emite.androidtv_project.domain.repository.SlideshowRepository
 import javax.inject.Inject
 
 class SlideshowRepositoryImpl @Inject constructor(
-    private val api: SlideshowApi
+    private val api: SlideshowApi,
+    @ApplicationContext private val context: Context
 ) : SlideshowRepository {
 
     private val TAG = "SlideshowRepo"
 
     override suspend fun getSlideshowConfig(instancia: String): Result<SlideshowConfig> {
         return try {
-            val mac = DeviceUtils.getMacAddress()
+            val mac = DeviceUtils.getMacAddress(context)
             val url = "https://$instancia.tegestiona.es/pantallas/sync/$mac"
             Log.d(TAG, "Iniciando sincronización de pantallas: $url")
 

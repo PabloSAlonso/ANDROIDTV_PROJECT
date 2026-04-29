@@ -3,14 +3,17 @@ trigger: model_decision
 description: Tareas del proyecto en android tv
 ---
 
-Todo en orden, nueevas tareas pendientes:
+Visto lo visto, no podemos detectar por codigo la MAC del dispositivo, debemos no tratar de coger la MAC a partir de la IP, sino recoger los datos del dispositivo y hacer una funcion estilo: 
 
-Features:
+fun getMac(context: Context): String {
+ val manager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
+ val info = manager.connectionInfo
+ return info.macAddress.toUpperCase()
+}
 
-1. Implementar un aviso en pantalla durante el Slide de imagenes cuando se pulsa una vez el boton hacia atras del mando, para indicar que debe mantenerse pulsado unos segundos para ir hacia atrás.
+your app must now have the ACCESS_FINE_LOCATION or ACCESS_COARSE_LOCATION permissions.
 
-2. En la pantalla de inicio, implementemos un menú desplegable mediante la pulsación de un icono, de momento con 2 opciones (en un futuro habrá más): salir de la app (dejandola abierta en segundo plano) y cerrar la app del todo
+default value if you don't have grant access is 02:00:00:00:00:00.
 
-Fixes:
+con estos tips revisa que podamos acceder a la MAC y hacer la llamada correctamente, añade logs en el proceso para debuggin mas sencillo
 
-1. En nuestra red hemos configurado la mac del dispositivo TV y al iniciar la app dice que no detecta MAC real y usa la predeterminada, aun estando la TV conectada al ordenador, debemos revisar la lógica de conexión ya que la MAC que buscamos es la del dispositivo tv a la q estamos conectados, y simplemente deberemos hacer la llamada a la URL de tegestiona/sync con la MAC, si el texto recibido es Null (sucede con MACS que no existen) podemos simplemente poner un mensaje en pantalla de que la instancia podría ser incorrecta y que se debe contactar a soporte 

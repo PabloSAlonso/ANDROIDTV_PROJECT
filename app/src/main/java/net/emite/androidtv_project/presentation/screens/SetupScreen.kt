@@ -31,6 +31,7 @@ import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import net.emite.androidtv_project.presentation.viewmodel.SetupViewModel
+import androidx.activity.compose.rememberLauncherForActivityResult
 import kotlin.system.exitProcess
 
 @OptIn(ExperimentalTvMaterial3Api::class)
@@ -49,7 +50,20 @@ fun SetupScreen(
     var menuFocused by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions(),
+        onResult = { permissions ->
+            // Si concede o no, el WifiManager de DeviceUtils intentará leer lo que pueda.
+        }
+    )
+
     LaunchedEffect(Unit) {
+        permissionLauncher.launch(
+            arrayOf(
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                android.Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+        )
         try {
             focusRequester.requestFocus()
         } catch (e: Exception) {

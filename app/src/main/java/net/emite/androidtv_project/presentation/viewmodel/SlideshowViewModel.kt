@@ -1,9 +1,11 @@
 package net.emite.androidtv_project.presentation.viewmodel
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +22,8 @@ import javax.inject.Inject
 @HiltViewModel
 class SlideshowViewModel @Inject constructor(
     private val slideshowRepository: SlideshowRepository,
-    private val configRepository: ConfigRepository
+    private val configRepository: ConfigRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val TAG = "SlideshowVM"
@@ -79,7 +82,7 @@ class SlideshowViewModel @Inject constructor(
                     onFailure = {
                         Log.e(TAG, "Fallo al cargar slideshow", it)
                         if (it.message?.contains("MAC_NOT_FOUND") == true) {
-                            val mac = net.emite.androidtv_project.core.utils.DeviceUtils.getMacAddress()
+                            val mac = net.emite.androidtv_project.core.utils.DeviceUtils.getMacAddress(context)
                             _uiState.value = SlideshowUiState.Error(
                                 "No se ha podido sincronizar.\n\n" +
                                 "La instancia podría ser incorrecta o el dispositivo no está autorizado.\n" +
