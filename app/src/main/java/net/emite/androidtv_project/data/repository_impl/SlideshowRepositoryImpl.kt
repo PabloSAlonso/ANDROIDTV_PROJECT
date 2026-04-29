@@ -23,6 +23,7 @@ class SlideshowRepositoryImpl @Inject constructor(
         return try {
             val mac = DeviceUtils.getMacAddress(context)
             val url = "https://$instancia.tegestiona.es/pantallas/sync/$mac"
+            Log.d(TAG, "MAC detectada: $mac")
             Log.d(TAG, "Iniciando sincronización de pantallas: $url")
 
             val response = api.getSlideshow(url)
