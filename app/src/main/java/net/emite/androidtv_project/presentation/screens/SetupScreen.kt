@@ -50,20 +50,7 @@ fun SetupScreen(
     var menuFocused by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions(),
-        onResult = { permissions ->
-            // Si concede o no, el WifiManager de DeviceUtils intentará leer lo que pueda.
-        }
-    )
-
     LaunchedEffect(Unit) {
-        permissionLauncher.launch(
-            arrayOf(
-                android.Manifest.permission.ACCESS_FINE_LOCATION,
-                android.Manifest.permission.ACCESS_COARSE_LOCATION
-            )
-        )
         try {
             focusRequester.requestFocus()
         } catch (e: Exception) {

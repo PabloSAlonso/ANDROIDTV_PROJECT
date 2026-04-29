@@ -82,11 +82,11 @@ class SlideshowViewModel @Inject constructor(
                     onFailure = {
                         Log.e(TAG, "Fallo al cargar slideshow", it)
                         if (it.message?.contains("MAC_NOT_FOUND") == true) {
-                            val mac = net.emite.androidtv_project.core.utils.DeviceUtils.getMacAddress(context)
+                            val deviceId = net.emite.androidtv_project.core.utils.DeviceUtils.getDeviceId(context)
                             _uiState.value = SlideshowUiState.Error(
                                 "No se ha podido sincronizar.\n\n" +
                                 "La instancia podría ser incorrecta o el dispositivo no está autorizado.\n" +
-                                "Por favor, contacte a soporte e indique esta MAC:\n\n$mac"
+                                "Por favor, contacte a soporte e indique este código de dispositivo:\n\n$deviceId"
                             )
                         } else {
                             _uiState.value = SlideshowUiState.Error(it.message ?: "Error al cargar slideshow")

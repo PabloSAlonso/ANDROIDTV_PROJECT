@@ -21,9 +21,9 @@ class SlideshowRepositoryImpl @Inject constructor(
 
     override suspend fun getSlideshowConfig(instancia: String): Result<SlideshowConfig> {
         return try {
-            val mac = DeviceUtils.getMacAddress(context)
-            val url = "https://$instancia.tegestiona.es/pantallas/sync/$mac"
-            Log.d(TAG, "MAC detectada: $mac")
+            val deviceId = DeviceUtils.getDeviceId(context)
+            val url = "https://$instancia.tegestiona.es/pantallas/sync/$deviceId"
+            Log.d(TAG, "ID de dispositivo detectado: $deviceId")
             Log.d(TAG, "Iniciando sincronización de pantallas: $url")
 
             val response = api.getSlideshow(url)

@@ -3,17 +3,15 @@ trigger: model_decision
 description: Tareas del proyecto en android tv
 ---
 
-Visto lo visto, no podemos detectar por codigo la MAC del dispositivo, debemos no tratar de coger la MAC a partir de la IP, sino recoger los datos del dispositivo y hacer una funcion estilo: 
+Cancelamos tema de MAC, ya que esta capado por android studio, vamos a utilizar el siguiente método: 
 
-fun getMac(context: Context): String {
- val manager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
- val info = manager.connectionInfo
- return info.macAddress.toUpperCase()
-}
+import java.util.UUID
 
-your app must now have the ACCESS_FINE_LOCATION or ACCESS_COARSE_LOCATION permissions.
+// Generar un UUID único aleatorio (Versión 4)
+val uniqueID: String = UUID.randomUUID().toString()
 
-default value if you don't have grant access is 02:00:00:00:00:00.
+println("UUID Generado: $uniqueID")
+// Ejemplo de salida: "550e8400-e29b-41d4-a716-446655440000"
 
-con estos tips revisa que podamos acceder a la MAC y hacer la llamada correctamente, añade logs en el proceso para debuggin mas sencillo
+Generaremos el código solo la primera vez que se ejecute la app en cada dispositivo, se guardará en la base de datos local y utilizará la misma URL acordada anteriormente pero cambiando la MAC por el código, externamente a la app nos encargaremos del backend para que esté sincronizado y tenga sentido, tu encargate primero de enlazar este código aleatorio generado y guardado con la URL destino.
 
