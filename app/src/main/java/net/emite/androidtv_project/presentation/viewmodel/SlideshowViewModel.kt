@@ -57,7 +57,7 @@ class SlideshowViewModel @Inject constructor(
                                 SlideshowItem(
                                     id = "test_video_mp4",
                                     mediaUrl = "https://demo.tegestiona.es/files/demo/t_pantallas_media/9_4_maspyme.mp4",
-                                    durationSeconds = 20, // Duración aproximada para el ciclo si es necesario
+                                    durationSeconds = 20, 
                                     type = MediaType.VIDEO
                                 )
                             )
