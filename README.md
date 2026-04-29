@@ -12,7 +12,7 @@ La aplicación funciona como un reproductor de cartelería digital o presentacio
 4. **Reproducción de Vídeo Integrada:** Los vídeos se reproducen en su totalidad sin ser interrumpidos por el temporizador general del pase de diapositivas, integrando el ciclo de vida del vídeo con la orquestación del reproductor.
 5. **Funcionamiento Offline-First:** Los datos y la configuración principal (y el contenido cacheado) se apoyan en una base de datos local para mantener la estabilidad frente a cortes de red.
 
-## 🛠 Tecnologías Utilizadas
+## Tecnologías Utilizadas
 
 El proyecto está desarrollado con las últimas tecnologías y patrones recomendados para el desarrollo moderno en Android:
 
