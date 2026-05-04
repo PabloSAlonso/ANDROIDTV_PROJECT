@@ -18,5 +18,8 @@ data class ConfigDto(
 data class ScreenDto(
     val id: String,
     val file: String,
-    val duracion: String? = "10"
+    val duracion: String? = "10",
+    val orden: String? = "0",
+    val semana: String? = null,
+    val horas: String? = null
 )

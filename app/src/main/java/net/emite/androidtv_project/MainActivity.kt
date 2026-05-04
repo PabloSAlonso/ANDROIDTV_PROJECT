@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Text
+import android.view.WindowManager
 import dagger.hilt.android.AndroidEntryPoint
 import net.emite.androidtv_project.presentation.screens.SetupScreen
 import net.emite.androidtv_project.presentation.screens.SlideshowScreen
@@ -28,6 +29,7 @@ class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalTvMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContent {
             AndroidTVProjectTheme {
                 val hasInstance by mainViewModel.hasInstance.collectAsState()
@@ -41,7 +43,14 @@ class MainActivity : ComponentActivity() {
                                 .background(DarkBackground),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(text = "Cargando...")
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                androidx.compose.foundation.Image(
+                                    painter = androidx.compose.ui.res.painterResource(id = R.drawable.wappa_banner_tv),
+                                    contentDescription = "Logo",
+                                    modifier = Modifier.width(300.dp).padding(bottom = 24.dp)
+                                )
+                                Text(text = "Cargando...")
+                            }
                         }
                     }
                     false -> {

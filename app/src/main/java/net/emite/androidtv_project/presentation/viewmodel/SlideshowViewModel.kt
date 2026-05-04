@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import java.util.Calendar
+import net.emite.androidtv_project.core.utils.PhpSerializerUtils
 import net.emite.androidtv_project.domain.model.MediaType
 import net.emite.androidtv_project.domain.model.SlideshowConfig
 import net.emite.androidtv_project.domain.model.SlideshowItem
@@ -61,7 +63,10 @@ class SlideshowViewModel @Inject constructor(
                                     id = "test_video_mp4",
                                     mediaUrl = "https://demo.tegestiona.es/files/demo/t_pantallas_media/9_4_maspyme.mp4",
                                     durationSeconds = 20, 
-                                    type = MediaType.VIDEO
+                                    type = MediaType.VIDEO,
+                                    orden = 999,
+                                    semana = null,
+                                    horas = null
                                 )
                             )
                         } else {
@@ -100,28 +105,78 @@ class SlideshowViewModel @Inject constructor(
         }
     }
 
+    private fun filterActiveItems(items: List<SlideshowItem>): List<SlideshowItem> {
+        val calendar = Calendar.getInstance()
+        // Calendar.DAY_OF_WEEK: 1=Sun, 2=Mon...7=Sat
+        // PHP array for days: "0"=Sun, "1"=Mon..."6"=Sat
+        val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK) - 1
+        val currentHour = String.format("%02d", calendar.get(Calendar.HOUR_OF_DAY))
+
+        return items.filter { item ->
+            val activeDays = PhpSerializerUtils.parsePhpStringArray(item.semana)
+            val activeHours = PhpSerializerUtils.parsePhpStringArray(item.horas)
+
+            val isDayActive = activeDays.isEmpty() || activeDays.contains(dayOfWeek.toString())
+            val isHourActive = activeHours.isEmpty() || activeHours.contains(currentHour)
+
+            isDayActive && isHourActive
+        }.sortedBy { it.orden }
+    }
+
     private fun startSlideshowLoop() {
         viewModelScope.launch {
             while (true) {
-                if (items.isNotEmpty()) {
-                    val item = items[currentIndex]
+                val activeItems = filterActiveItems(items)
+                if (activeItems.isEmpty()) {
+                    Log.d(TAG, "Sincronización: No hay items activos en este momento, reintentando en 60s")
+                    delay(60000L)
+                    continue
+                }
+
+                val totalLoopDuration = activeItems.sumOf { it.durationSeconds }
+                if (totalLoopDuration == 0) {
+                    delay(5000L)
+                    continue
+                }
+
+                val calendar = Calendar.getInstance()
+                val secondsOfDay = calendar.get(Calendar.HOUR_OF_DAY) * 3600 +
+                        calendar.get(Calendar.MINUTE) * 60 +
+                        calendar.get(Calendar.SECOND)
+
+                val positionInLoop = secondsOfDay % totalLoopDuration
+
+                var accumulatedTime = 0
+                var targetItem: SlideshowItem? = null
+                var timeLeftForItem = 0
+
+                for (item in activeItems) {
+                    accumulatedTime += item.durationSeconds
+                    if (accumulatedTime > positionInLoop) {
+                        targetItem = item
+                        timeLeftForItem = accumulatedTime - positionInLoop
+                        break
+                    }
+                }
+
+                if (targetItem != null) {
                     Log.d(
                         TAG,
-                        "Mostrando media [${currentIndex + 1}/${items.size}]: ${item.mediaUrl} (Tipo: ${item.type}, Duración: ${item.durationSeconds}s)"
+                        "Sincronización: Mostrando media ${targetItem.mediaUrl} por ${timeLeftForItem}s (Posición de bucle: $positionInLoop / $totalLoopDuration)"
                     )
-                    _currentItem.value = item
+                    _currentItem.value = targetItem
 
-                    when (item.type) {
+                    when (targetItem.type) {
                         MediaType.IMAGE -> {
-                            delay(item.durationSeconds * 1000L)
+                            delay(timeLeftForItem * 1000L)
                         }
                         MediaType.VIDEO -> {
-                            videoCompletionSignal.tryReceive()
-                            videoCompletionSignal.receive()
+                            videoCompletionSignal.tryReceive() // Limpiar señal vieja
+                            kotlinx.coroutines.withTimeoutOrNull(timeLeftForItem * 1000L) {
+                                videoCompletionSignal.receive()
+                            }
                         }
                     }
-
-                    currentIndex = (currentIndex + 1) % items.size
                 } else {
                     delay(5000L)
                 }

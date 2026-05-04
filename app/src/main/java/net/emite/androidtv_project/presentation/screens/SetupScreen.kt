@@ -32,6 +32,9 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import net.emite.androidtv_project.presentation.viewmodel.SetupViewModel
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import net.emite.androidtv_project.R
 import kotlin.system.exitProcess
 
 @OptIn(ExperimentalTvMaterial3Api::class)
@@ -63,7 +66,7 @@ fun SetupScreen(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFF0D1B2A), Color(0xFF1B2A3B))
+                    colors = listOf(Color(0xFF2B0000), Color(0xFF4A0000))
                 )
             ),
         contentAlignment = Alignment.Center
@@ -94,7 +97,7 @@ fun SetupScreen(
             DropdownMenu(
                 expanded = menuExpanded,
                 onDismissRequest = { menuExpanded = false },
-                modifier = Modifier.background(Color(0xFF1B2A3B))
+                modifier = Modifier.background(Color(0xFF4A0000))
             ) {
                 DropdownMenuItem(
                     text = { androidx.compose.material3.Text("Minimizar (Dejar en segundo plano)", color = Color.White) },
@@ -127,11 +130,19 @@ fun SetupScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
+                Image(
+                    painter = painterResource(id = R.drawable.wappa_banner_tv),
+                    contentDescription = "Wappa Banner",
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .padding(bottom = 16.dp)
+                )
+
                 Text(
                     text = "Configuración Inicial",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1565C0)
+                    color = Color(0xFFE53935)
                 )
 
                 Text(
@@ -151,7 +162,7 @@ fun SetupScreen(
                         .onFocusChanged { textFieldFocused = it.isFocused }
                         .border(
                             width = if (textFieldFocused) 3.dp else 0.dp,
-                            color = if (textFieldFocused) Color(0xFF42A5F5) else Color.Transparent,
+                            color = if (textFieldFocused) Color(0xFFEF5350) else Color.Transparent,
                             shape = RoundedCornerShape(8.dp)
                         ),
                     singleLine = true,
@@ -169,7 +180,7 @@ fun SetupScreen(
                 Text(
                     text = "https://$instancia.tegestiona.es",
                     fontSize = 12.sp,
-                    color = Color(0xFF1565C0),
+                    color = Color(0xFFE53935),
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
 
@@ -186,7 +197,7 @@ fun SetupScreen(
                     enabled = instancia.isNotBlank(),
                     shape = RoundedCornerShape(8.dp),
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                        containerColor = if (buttonFocused) Color(0xFF1976D2) else Color(0xFF1565C0)
+                        containerColor = if (buttonFocused) Color(0xFFD32F2F) else Color(0xFFB71C1C)
                     )
                 ) {
                     androidx.compose.material3.Text(

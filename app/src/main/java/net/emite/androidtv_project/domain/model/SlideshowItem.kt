@@ -9,7 +9,10 @@ data class SlideshowItem(
     val id: String,
     val mediaUrl: String,
     val durationSeconds: Int,
-    val type: MediaType
+    val type: MediaType,
+    val orden: Int,
+    val semana: String?,
+    val horas: String?
 )
 
 data class SlideshowConfig(
