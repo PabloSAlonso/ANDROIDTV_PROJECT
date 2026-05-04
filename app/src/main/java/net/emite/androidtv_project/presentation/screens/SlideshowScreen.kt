@@ -143,8 +143,9 @@ fun SlideshowScreen(
                 AnimatedContent(
                     targetState = currentItem,
                     transitionSpec = {
-                        fadeIn(animationSpec = tween(1200)) togetherWith fadeOut(
-                            animationSpec = tween(1200)
+                        // Transición cruzada suave de 800ms
+                        fadeIn(animationSpec = tween(800)) togetherWith fadeOut(
+                            animationSpec = tween(800)
                         )
                     },
                     label = "SlideshowTransition",
@@ -153,8 +154,7 @@ fun SlideshowScreen(
                     item?.let {
                         Box(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color.Black),
+                                .fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
                             when (it.type) {

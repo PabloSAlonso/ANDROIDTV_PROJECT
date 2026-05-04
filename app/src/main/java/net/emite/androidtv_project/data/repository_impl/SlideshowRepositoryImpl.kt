@@ -10,6 +10,8 @@ import net.emite.androidtv_project.data.remote.api.SlideshowApi
 import net.emite.androidtv_project.data.remote.dto.SlideshowResponse
 import net.emite.androidtv_project.domain.model.SlideshowConfig
 import net.emite.androidtv_project.domain.repository.SlideshowRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class SlideshowRepositoryImpl @Inject constructor(
@@ -37,19 +39,26 @@ class SlideshowRepositoryImpl @Inject constructor(
                 throw Exception("MAC_NOT_FOUND")
             }
 
-            val jsonParser = Json { ignoreUnknownKeys = true }
-            val parsedResponse = jsonParser.decodeFromString<SlideshowResponse>(responseBody)
+            val items = withContext(Dispatchers.Default) {
+                val jsonParser = Json { ignoreUnknownKeys = true }
+                val parsedResponse = jsonParser.decodeFromString<SlideshowResponse>(responseBody)
 
-            val orientation = parsedResponse.cfg.orientacion ?: "H"
-            val folder = parsedResponse.cfg.url ?: "demo"
-            Log.d(TAG, "Configuración recibida: Orientación=$orientation, Carpeta=$folder")
+                val orientation = parsedResponse.cfg.orientacion ?: "H"
+                val folder = parsedResponse.cfg.url ?: "demo"
+                Log.d(TAG, "Configuración recibida: Orientación=$orientation, Carpeta=$folder")
 
-            val items = parsedResponse.screens.values.map { screen ->
-                screen.toDomainItem(instancia = instancia, folder = folder)
+                val mappedItems = parsedResponse.screens.values.map { screen ->
+                    screen.toDomainItem(instancia = instancia, folder = folder)
+                }
+                
+                // Retornamos un par con la orientación y los ítems
+                Pair(orientation, mappedItems)
             }
-            Log.d(TAG, "Sincronización finalizada: ${items.size} diapositivas procesadas")
 
-            Result.success(SlideshowConfig(orientation = orientation, items = items))
+            val (orientation, mappedItems) = items
+            Log.d(TAG, "Sincronización finalizada: ${mappedItems.size} diapositivas procesadas")
+
+            Result.success(SlideshowConfig(orientation = orientation, items = mappedItems))
         } catch (e: Exception) {
             Log.e(TAG, "Error durante la sincronización", e)
             Result.failure(e)
