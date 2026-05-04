@@ -59,26 +59,26 @@ class SlideshowViewModel @Inject constructor(
                     onSuccess = { slideshowConfig ->
                         val remoteItems = slideshowConfig.items
                         
-                        // Si es la instancia de prueba 'demo', añadimos el video solicitado manualmente
-                        val testItems = if (config.instancia.lowercase() == "demo") {
-                            Log.d(TAG, "Añadiendo video de prueba manual para instancia demo")
-                            listOf(
-                                SlideshowItem(
-                                    id = "test_video_mp4",
-                                    mediaUrl = "https://demo.tegestiona.es/files/demo/t_pantallas_media/9_4_maspyme.mp4",
-                                    durationSeconds = 20, 
-                                    type = MediaType.VIDEO,
-                                    orden = 999,
-                                    semana = null,
-                                    horas = null
-                                )
-                            )
-                        } else {
-                            emptyList()
-                        }
+//                        // Si es la instancia de prueba 'demo', añadimos el video solicitado manualmente
+//                        val testItems = if (config.instancia.lowercase() == "demo") {
+//                            Log.d(TAG, "Añadiendo video de prueba manual para instancia demo")
+//                            listOf(
+//                                SlideshowItem(
+//                                    id = "test_video_mp4",
+//                                    mediaUrl = "https://demo.tegestiona.es/files/demo/t_pantallas_media/9_4_maspyme.mp4",
+//                                    durationSeconds = 20,
+//                                    type = MediaType.VIDEO,
+//                                    orden = 999,
+//                                    semana = null,
+//                                    horas = null
+//                                )
+//                            )
+//                        } else {
+//                            emptyList()
+//                        }
 
-                        items = remoteItems + testItems
-                        Log.d(TAG, "Slideshow cargado. Items totales: ${items.size} (Remotos: ${remoteItems.size}, Test: ${testItems.size})")
+                        items = remoteItems
+//                        Log.d(TAG, "Slideshow cargado. Items totales: ${items.size} (Remotos: ${remoteItems.size}, Test: ${testItems.size})")
                         
                         _uiState.value = SlideshowUiState.Success(slideshowConfig.copy(items = items))
                         
