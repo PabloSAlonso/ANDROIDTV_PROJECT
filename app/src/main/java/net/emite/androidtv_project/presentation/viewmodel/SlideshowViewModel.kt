@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import net.emite.androidtv_project.core.utils.SlideshowSyncUtils
 import net.emite.androidtv_project.core.utils.PhpSerializerUtils
 import net.emite.androidtv_project.domain.model.MediaType
 import net.emite.androidtv_project.domain.model.SlideshowConfig
@@ -43,7 +44,6 @@ class SlideshowViewModel @Inject constructor(
     private val videoCompletionSignal = Channel<Unit>(Channel.CONFLATED)
 
     private var items: List<SlideshowItem> = emptyList()
-    private var currentIndex = 0
 
     init {
         loadSlideshow()
@@ -143,35 +143,62 @@ class SlideshowViewModel @Inject constructor(
         viewModelScope.launch {
             while (true) {
                 val activeItems = filterActiveItems(items)
+
+                // ─── Log de auditoría de sincronización ────────────────────────────────────
                 if (activeItems.isEmpty()) {
-                    Log.w(TAG, "No hay ítems activos en este momento. Reintentando en 10s...")
+                    Log.w(TAG, "[SYNC] No hay ítems activos en este momento. Reintentando en 10s...")
                     delay(10000L)
                     continue
                 }
 
-                // Reproducción secuencial respetando duración
-                for (i in activeItems.indices) {
-                    val item = activeItems[i]
-                    
-                    // Precarga del siguiente elemento
-                    val nextIndex = (i + 1) % activeItems.size
-                    preloadNextItem(activeItems[nextIndex])
+                val totalDurationSec = SlideshowSyncUtils.calculateTotalCycleDuration(activeItems)
+                val secondsSinceMidnight = SlideshowSyncUtils.getSecondsSinceMidnight()
+                val currentTimeStr = SlideshowSyncUtils.getCurrentTimeString()
+                val positionInCycle = secondsSinceMidnight % totalDurationSec
 
-                    Log.d(TAG, ">> Reproduciendo [${i + 1}/${activeItems.size}]: ${item.id} - ${item.mediaUrl} durante ${item.durationSeconds}s")
-                    _currentItem.value = item
+                Log.d(TAG, "[SYNC] ══════════════════════════════════════════")
+                Log.d(TAG, "[SYNC] Calculando sincronización determinística...")
+                Log.d(TAG, "[SYNC] Hora actual del sistema     : $currentTimeStr")
+                Log.d(TAG, "[SYNC] Ítems activos en el ciclo   : ${activeItems.size}")
+                Log.d(TAG, "[SYNC] Duración total del ciclo     : ${totalDurationSec}s")
+                Log.d(TAG, "[SYNC] Segundos desde medianoche    : ${secondsSinceMidnight}s")
+                Log.d(TAG, "[SYNC] Posición en el ciclo         : ${secondsSinceMidnight}s % ${totalDurationSec}s = ${positionInCycle}s")
 
-                    when (item.type) {
-                        MediaType.IMAGE -> {
-                            delay(item.durationSeconds * 1000L)
+                // ─── Cálculo del ítem actual ───────────────────────────────────────────────
+                val syncResult = SlideshowSyncUtils.findCurrentSynchronizedItem(activeItems)
+
+                if (syncResult == null) {
+                    Log.w(TAG, "[SYNC] No se pudo calcular el ítem sincronizado. Reintentando en 5s...")
+                    delay(5000L)
+                    continue
+                }
+
+                val (currentItem, currentIndex, remainingSeconds, slotStart, slotEnd) = syncResult
+
+                Log.d(TAG, "[SYNC] Ítem calculado               : [${currentIndex + 1}/${activeItems.size}] ID=${currentItem.id}")
+                Log.d(TAG, "[SYNC] Slot temporal del ítem       : ${slotStart}s → ${slotEnd}s del ciclo")
+                Log.d(TAG, "[SYNC] Tiempo restante para avanzar : ${remainingSeconds}s")
+                Log.d(TAG, "[SYNC] URL del media                : ${currentItem.mediaUrl}")
+                Log.d(TAG, "[SYNC] ══════════════════════════════════════════")
+
+                // Precarga del siguiente ítem para transición suave
+                val nextIndex = (currentIndex + 1) % activeItems.size
+                preloadNextItem(activeItems[nextIndex])
+
+                _currentItem.value = currentItem
+
+                // ─── Espera el tiempo restante del slot actual ─────────────────────────────
+                when (currentItem.type) {
+                    MediaType.IMAGE -> {
+                        delay(remainingSeconds * 1000L)
+                    }
+                    MediaType.VIDEO -> {
+                        videoCompletionSignal.tryReceive() // Limpiar señales previas
+                        // Para vídeos, respetamos el slot temporal del JSON para mantener sync global
+                        kotlinx.coroutines.withTimeoutOrNull(remainingSeconds * 1000L) {
+                            videoCompletionSignal.receive()
                         }
-                        MediaType.VIDEO -> {
-                            videoCompletionSignal.tryReceive() // Limpiar señales previas
-                            // Esperar a que el vídeo termine o un timeout de seguridad (duración + 5s)
-                            kotlinx.coroutines.withTimeoutOrNull((item.durationSeconds + 5) * 1000L) {
-                                videoCompletionSignal.receive()
-                            }
-                            Log.d(TAG, "<< Vídeo finalizado o timeout alcanzado para ${item.id}")
-                        }
+                        Log.d(TAG, "[SYNC] Vídeo: señal recibida o slot agotado para ID=${currentItem.id}")
                     }
                 }
             }
