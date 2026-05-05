@@ -18,6 +18,7 @@ fun ScreenDto.toDomainItem(instancia: String, folder: String): SlideshowItem {
         type = mediaType,
         orden = orden?.toIntOrNull() ?: 0,
         semana = semana,
-        horas = horas
+        horas = horas,
+        md5 = md5
     )
 }

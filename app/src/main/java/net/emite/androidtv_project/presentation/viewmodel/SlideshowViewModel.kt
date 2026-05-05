@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 import net.emite.androidtv_project.core.utils.SlideshowSyncUtils
 import net.emite.androidtv_project.core.utils.PhpSerializerUtils
+import net.emite.androidtv_project.core.utils.MediaCacheManager
 import net.emite.androidtv_project.domain.model.MediaType
 import net.emite.androidtv_project.domain.model.SlideshowConfig
 import net.emite.androidtv_project.domain.model.SlideshowItem
@@ -30,6 +31,7 @@ import javax.inject.Inject
 class SlideshowViewModel @Inject constructor(
     private val slideshowRepository: SlideshowRepository,
     private val configRepository: ConfigRepository,
+    private val mediaCacheManager: MediaCacheManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -78,14 +80,21 @@ class SlideshowViewModel @Inject constructor(
 //                        }
 
                         items = remoteItems
-//                        Log.d(TAG, "Slideshow cargado. Items totales: ${items.size} (Remotos: ${remoteItems.size}, Test: ${testItems.size})")
-                        
-                        _uiState.value = SlideshowUiState.Success(slideshowConfig.copy(items = items))
                         
                         if (items.isNotEmpty()) {
-                            startSlideshowLoop()
+                            // Fase de precarga de recursos
+                            viewModelScope.launch {
+                                Log.d(TAG, "Iniciando fase de precarga de ${items.size} recursos...")
+                                mediaCacheManager.cacheItems(items) { current, total ->
+                                    _uiState.value = SlideshowUiState.Preloading(current, total)
+                                }
+                                Log.d(TAG, "Precarga finalizada. Iniciando slideshow...")
+                                _uiState.value = SlideshowUiState.Success(slideshowConfig.copy(items = items))
+                                startSlideshowLoop()
+                            }
                         } else {
                             Log.w(TAG, "La lista de diapositivas está vacía")
+                            _uiState.value = SlideshowUiState.Success(slideshowConfig.copy(items = items))
                         }
                     },
                     onFailure = {
@@ -205,6 +214,15 @@ class SlideshowViewModel @Inject constructor(
         }
     }
 
+    fun getLocalUri(item: SlideshowItem): String {
+        return if (item.type == MediaType.VIDEO) {
+            val file = mediaCacheManager.getLocalFileForItem(item)
+            if (file.exists()) "file://${file.absolutePath}" else item.mediaUrl
+        } else {
+            item.mediaUrl
+        }
+    }
+
     fun onMediaVideoEnded() {
         videoCompletionSignal.trySend(Unit)
     }
@@ -219,6 +237,7 @@ class SlideshowViewModel @Inject constructor(
 
 sealed class SlideshowUiState {
     object Loading : SlideshowUiState()
+    data class Preloading(val current: Int, val total: Int) : SlideshowUiState()
     data class Success(val config: SlideshowConfig) : SlideshowUiState()
     data class Error(val message: String) : SlideshowUiState()
 }

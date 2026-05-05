@@ -15,8 +15,12 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -126,7 +130,32 @@ fun SlideshowScreen(
     ) {
         when (val state = uiState) {
             is SlideshowUiState.Loading -> {
-                Text("Cargando Slideshow...")
+                Text("Cargando configuración...")
+            }
+
+            is SlideshowUiState.Preloading -> {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Descargando recursos...",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.padding(8.dp))
+                    Text(
+                        text = "${state.current} / ${state.total}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.Gray
+                    )
+                    Spacer(modifier = Modifier.padding(16.dp))
+                    LinearProgressIndicator(
+                        progress = { state.current.toFloat() / state.total.toFloat() },
+                        modifier = Modifier.width(300.dp),
+                        color = Color.White,
+                        trackColor = Color.DarkGray
+                    )
+                }
             }
 
             is SlideshowUiState.Error -> {
@@ -160,7 +189,7 @@ fun SlideshowScreen(
                             when (it.type) {
                                 MediaType.IMAGE -> {
                                     AsyncImage(
-                                        model = it.mediaUrl,
+                                        model = viewModel.getLocalUri(it),
                                         contentDescription = null,
                                         modifier = Modifier.fillMaxSize(),
                                         contentScale = ContentScale.Crop
@@ -169,7 +198,7 @@ fun SlideshowScreen(
 
                                 MediaType.VIDEO -> {
                                     VideoPlayer(
-                                        mediaUrl = it.mediaUrl,
+                                        mediaUrl = viewModel.getLocalUri(it),
                                         modifier = Modifier.fillMaxSize(),
                                         onVideoEnded = viewModel::onMediaVideoEnded
                                     )

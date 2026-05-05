@@ -21,5 +21,6 @@ data class ScreenDto(
     val duracion: String? = "10",
     val orden: String? = "0",
     val semana: String? = null,
-    val horas: String? = null
+    val horas: String? = null,
+    val md5: String? = null
 )

@@ -12,7 +12,8 @@ data class SlideshowItem(
     val type: MediaType,
     val orden: Int,
     val semana: String?,
-    val horas: String?
+    val horas: String?,
+    val md5: String?
 )
 
 data class SlideshowConfig(
