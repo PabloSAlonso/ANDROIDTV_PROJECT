@@ -91,6 +91,7 @@ class SlideshowViewModel @Inject constructor(
                                 Log.d(TAG, "Precarga finalizada. Iniciando slideshow...")
                                 _uiState.value = SlideshowUiState.Success(slideshowConfig.copy(items = items))
                                 startSlideshowLoop()
+                                startPeriodicUpdates(config.instancia)
                             }
                         } else {
                             Log.w(TAG, "La lista de diapositivas está vacía")
@@ -225,6 +226,73 @@ class SlideshowViewModel @Inject constructor(
 
     fun onMediaVideoEnded() {
         videoCompletionSignal.trySend(Unit)
+    }
+
+    private fun startPeriodicUpdates(instancia: String) {
+        viewModelScope.launch {
+            while (true) {
+                val currentTime = System.currentTimeMillis()
+                val lastUpdate = configRepository.getLastUpdateTimestamp()
+                
+                if (shouldTriggerUpdate(currentTime, lastUpdate)) {
+                    Log.i(TAG, "[UPDATE] Detectada ventana de actualización o catch-up necesario. Iniciando comprobación...")
+                    performSilentUpdate(instancia)
+                }
+                
+                // Comprobar cada 15 minutos si hemos entrado en una nueva ventana
+                delay(15 * 60 * 1000L) 
+            }
+        }
+    }
+
+    private fun shouldTriggerUpdate(currentTimeMillis: Long, lastUpdateMillis: Long): Boolean {
+        val calendar = Calendar.getInstance().apply { timeInMillis = currentTimeMillis }
+        val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
+        
+        // Ventanas: 0, 6, 12, 18
+        val updateHours = listOf(0, 6, 12, 18)
+        
+        // Buscamos la última ventana teórica que debería haber pasado hoy
+        val lastScheduledHour = updateHours.filter { it <= currentHour }.lastOrNull() ?: 0
+        
+        val lastScheduledCalendar = Calendar.getInstance().apply {
+            timeInMillis = currentTimeMillis
+            set(Calendar.HOUR_OF_DAY, lastScheduledHour)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        
+        val lastScheduledTime = lastScheduledCalendar.timeInMillis
+        
+        // Si la última actualización exitosa es anterior a la última ventana programada, toca actualizar
+        return lastUpdateMillis < lastScheduledTime
+    }
+
+    private suspend fun performSilentUpdate(instancia: String) {
+        try {
+            val result = slideshowRepository.getSlideshowConfig(instancia)
+            result.fold(
+                onSuccess = { slideshowConfig ->
+                    val newItems = slideshowConfig.items
+                    Log.d(TAG, "[UPDATE] Nueva configuración descargada en segundo plano. Iniciando precarga silenciosa...")
+                    
+                    // Precarga silenciosa (no actualiza UI de progreso)
+                    mediaCacheManager.cacheItems(newItems) { _, _ -> }
+                    
+                    // Actualización atómica de la lista de ítems para el siguiente ciclo del loop
+                    items = newItems
+                    configRepository.saveLastUpdateTimestamp(System.currentTimeMillis())
+                    
+                    Log.i(TAG, "[UPDATE] Actualización silenciosa completada con éxito.")
+                },
+                onFailure = {
+                    Log.e(TAG, "[UPDATE] Fallo al descargar nueva configuración en segundo plano", it)
+                }
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "[UPDATE] Error crítico durante actualización silenciosa", e)
+        }
     }
 
     fun logout() {

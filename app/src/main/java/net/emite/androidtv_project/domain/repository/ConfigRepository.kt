@@ -7,4 +7,6 @@ interface ConfigRepository {
     fun getConfig(): Flow<Config?>
     suspend fun saveConfig(config: Config)
     suspend fun clearConfig()
+    suspend fun getLastUpdateTimestamp(): Long
+    suspend fun saveLastUpdateTimestamp(timestamp: Long)
 }
