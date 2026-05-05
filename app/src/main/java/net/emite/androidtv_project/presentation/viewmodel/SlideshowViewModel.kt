@@ -89,6 +89,7 @@ class SlideshowViewModel @Inject constructor(
                                     _uiState.value = SlideshowUiState.Preloading(current, total)
                                 }
                                 Log.d(TAG, "Precarga finalizada. Iniciando slideshow...")
+                                configRepository.saveLastUpdateTimestamp(System.currentTimeMillis())
                                 _uiState.value = SlideshowUiState.Success(slideshowConfig.copy(items = items))
                                 startSlideshowLoop()
                                 startPeriodicUpdates(config.instancia)
