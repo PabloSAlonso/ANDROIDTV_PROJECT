@@ -61,24 +61,6 @@ class SlideshowViewModel @Inject constructor(
                 result.fold(
                     onSuccess = { slideshowConfig ->
                         val remoteItems = slideshowConfig.items
-                        
-//                        // Si es la instancia de prueba 'demo', añadimos el video solicitado manualmente
-//                        val testItems = if (config.instancia.lowercase() == "demo") {
-//                            Log.d(TAG, "Añadiendo video de prueba manual para instancia demo")
-//                            listOf(
-//                                SlideshowItem(
-//                                    id = "test_video_mp4",
-//                                    mediaUrl = "https://demo.tegestiona.es/files/demo/t_pantallas_media/9_4_maspyme.mp4",
-//                                    durationSeconds = 20,
-//                                    type = MediaType.VIDEO,
-//                                    orden = 999,
-//                                    semana = null,
-//                                    horas = null
-//                                )
-//                            )
-//                        } else {
-//                            emptyList()
-//                        }
 
                         items = remoteItems
                         
