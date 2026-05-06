@@ -8,6 +8,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import net.emite.androidtv_project.data.local.AppDatabase
+import net.emite.androidtv_project.data.local.dao.CachedJsonDao
 import net.emite.androidtv_project.data.local.dao.ConfigDao
 import javax.inject.Singleton
 
@@ -22,10 +23,14 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "androidtv_db"
-        ).fallbackToDestructiveMigration()
+        ).addMigrations(AppDatabase.MIGRATION_2_3)
+            .fallbackToDestructiveMigration()
             .build()
     }
 
     @Provides
     fun provideConfigDao(db: AppDatabase): ConfigDao = db.configDao()
+
+    @Provides
+    fun provideCachedJsonDao(db: AppDatabase): CachedJsonDao = db.cachedJsonDao()
 }

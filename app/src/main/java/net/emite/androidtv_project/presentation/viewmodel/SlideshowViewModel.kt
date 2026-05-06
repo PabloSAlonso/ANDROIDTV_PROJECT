@@ -17,6 +17,7 @@ import net.emite.androidtv_project.core.utils.SlideshowSyncUtils
 import net.emite.androidtv_project.core.utils.PhpSerializerUtils
 import net.emite.androidtv_project.core.utils.MediaCacheManager
 import net.emite.androidtv_project.domain.model.MediaType
+import net.emite.androidtv_project.domain.model.RefreshResult
 import net.emite.androidtv_project.domain.model.SlideshowConfig
 import net.emite.androidtv_project.domain.model.SlideshowItem
 import net.emite.androidtv_project.domain.repository.ConfigRepository
@@ -89,10 +90,9 @@ class SlideshowViewModel @Inject constructor(
                                     _uiState.value = SlideshowUiState.Preloading(current, total)
                                 }
                                 Log.d(TAG, "Precarga finalizada. Iniciando slideshow...")
-                                configRepository.saveLastUpdateTimestamp(System.currentTimeMillis())
                                 _uiState.value = SlideshowUiState.Success(slideshowConfig.copy(items = items))
                                 startSlideshowLoop()
-                                startPeriodicUpdates(config.instancia)
+                                startRefreshLoop(config.instancia)
                             }
                         } else {
                             Log.w(TAG, "La lista de diapositivas está vacía")
@@ -229,70 +229,46 @@ class SlideshowViewModel @Inject constructor(
         videoCompletionSignal.trySend(Unit)
     }
 
-    private fun startPeriodicUpdates(instancia: String) {
+    private fun startRefreshLoop(instancia: String) {
         viewModelScope.launch {
             while (true) {
-                val currentTime = System.currentTimeMillis()
-                val lastUpdate = configRepository.getLastUpdateTimestamp()
-                
-                if (shouldTriggerUpdate(currentTime, lastUpdate)) {
-                    Log.i(TAG, "[UPDATE] Detectada ventana de actualización o catch-up necesario. Iniciando comprobación...")
-                    performSilentUpdate(instancia)
+                // Esperar 15 minutos antes de la primera comprobación (la carga inicial ya trajo datos frescos)
+                delay(15 * 60 * 1000L)
+                Log.d(TAG, "[REFRESH] Iniciando comprobación de cambios en el JSON...")
+
+                when (val result = slideshowRepository.checkForUpdates(instancia)) {
+                    is RefreshResult.NoChange -> {
+                        Log.d(TAG, "[REFRESH] Sin cambios. Slideshow continúa.")
+                        // Limpiar aviso de red si estaba activo
+                        val currentState = _uiState.value
+                        if (currentState is SlideshowUiState.Success && currentState.networkWarning != null) {
+                            _uiState.value = currentState.copy(networkWarning = null)
+                        }
+                    }
+                    is RefreshResult.Updated -> {
+                        Log.i(TAG, "[REFRESH] Cambios detectados. Aplicando actualización silenciosa...")
+                        mediaCacheManager.cacheItems(result.config.items) { _, _ -> }
+                        items = result.config.items
+                        val currentState = _uiState.value
+                        if (currentState is SlideshowUiState.Success) {
+                            _uiState.value = currentState.copy(
+                                config = result.config,
+                                networkWarning = null
+                            )
+                        }
+                        Log.i(TAG, "[REFRESH] Actualización silenciosa completada.")
+                    }
+                    is RefreshResult.NetworkError -> {
+                        Log.w(TAG, "[REFRESH] Sin conexión: ${result.message}")
+                        val currentState = _uiState.value
+                        if (currentState is SlideshowUiState.Success) {
+                            _uiState.value = currentState.copy(
+                                networkWarning = "Sin conexión — mostrando contenido local"
+                            )
+                        }
+                    }
                 }
-                
-                // Comprobar cada 15 minutos si hemos entrado en una nueva ventana
-                delay(15 * 60 * 1000L) 
             }
-        }
-    }
-
-    private fun shouldTriggerUpdate(currentTimeMillis: Long, lastUpdateMillis: Long): Boolean {
-        val calendar = Calendar.getInstance().apply { timeInMillis = currentTimeMillis }
-        val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
-        
-        // Ventanas: 0, 6, 12, 18
-        val updateHours = listOf(0, 6, 12, 18)
-        
-        // Buscamos la última ventana teórica que debería haber pasado hoy
-        val lastScheduledHour = updateHours.filter { it <= currentHour }.lastOrNull() ?: 0
-        
-        val lastScheduledCalendar = Calendar.getInstance().apply {
-            timeInMillis = currentTimeMillis
-            set(Calendar.HOUR_OF_DAY, lastScheduledHour)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        
-        val lastScheduledTime = lastScheduledCalendar.timeInMillis
-        
-        // Si la última actualización exitosa es anterior a la última ventana programada, toca actualizar
-        return lastUpdateMillis < lastScheduledTime
-    }
-
-    private suspend fun performSilentUpdate(instancia: String) {
-        try {
-            val result = slideshowRepository.getSlideshowConfig(instancia)
-            result.fold(
-                onSuccess = { slideshowConfig ->
-                    val newItems = slideshowConfig.items
-                    Log.d(TAG, "[UPDATE] Nueva configuración descargada en segundo plano. Iniciando precarga silenciosa...")
-                    
-                    // Precarga silenciosa (no actualiza UI de progreso)
-                    mediaCacheManager.cacheItems(newItems) { _, _ -> }
-                    
-                    // Actualización atómica de la lista de ítems para el siguiente ciclo del loop
-                    items = newItems
-                    configRepository.saveLastUpdateTimestamp(System.currentTimeMillis())
-                    
-                    Log.i(TAG, "[UPDATE] Actualización silenciosa completada con éxito.")
-                },
-                onFailure = {
-                    Log.e(TAG, "[UPDATE] Fallo al descargar nueva configuración en segundo plano", it)
-                }
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "[UPDATE] Error crítico durante actualización silenciosa", e)
         }
     }
 
@@ -307,6 +283,9 @@ class SlideshowViewModel @Inject constructor(
 sealed class SlideshowUiState {
     object Loading : SlideshowUiState()
     data class Preloading(val current: Int, val total: Int) : SlideshowUiState()
-    data class Success(val config: SlideshowConfig) : SlideshowUiState()
+    data class Success(
+        val config: SlideshowConfig,
+        val networkWarning: String? = null
+    ) : SlideshowUiState()
     data class Error(val message: String) : SlideshowUiState()
 }

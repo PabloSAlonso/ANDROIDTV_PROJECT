@@ -16,12 +16,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.WifiOff
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Surface
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -169,44 +177,83 @@ fun SlideshowScreen(
             }
 
             is SlideshowUiState.Success -> {
-                AnimatedContent(
-                    targetState = currentItem,
-                    transitionSpec = {
-                        // Transición cruzada suave de 800ms
-                        fadeIn(animationSpec = tween(800)) togetherWith fadeOut(
-                            animationSpec = tween(800)
-                        )
-                    },
-                    label = "SlideshowTransition",
-                    modifier = Modifier.fillMaxSize()
-                ) { item ->
-                    item?.let {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            when (it.type) {
-                                MediaType.IMAGE -> {
-                                    AsyncImage(
-                                        model = viewModel.getLocalUri(it),
-                                        contentDescription = null,
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                }
+                Box(modifier = Modifier.fillMaxSize()) {
+                    AnimatedContent(
+                        targetState = currentItem,
+                        transitionSpec = {
+                            fadeIn(animationSpec = tween(800)) togetherWith fadeOut(
+                                animationSpec = tween(800)
+                            )
+                        },
+                        label = "SlideshowTransition",
+                        modifier = Modifier.fillMaxSize()
+                    ) { item ->
+                        item?.let {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                when (it.type) {
+                                    MediaType.IMAGE -> {
+                                        AsyncImage(
+                                            model = viewModel.getLocalUri(it),
+                                            contentDescription = null,
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    }
 
-                                MediaType.VIDEO -> {
-                                    VideoPlayer(
-                                        mediaUrl = viewModel.getLocalUri(it),
-                                        modifier = Modifier.fillMaxSize(),
-                                        onVideoEnded = viewModel::onMediaVideoEnded
-                                    )
+                                    MediaType.VIDEO -> {
+                                        VideoPlayer(
+                                            mediaUrl = viewModel.getLocalUri(it),
+                                            modifier = Modifier.fillMaxSize(),
+                                            onVideoEnded = viewModel::onMediaVideoEnded
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
+
+                    // Aviso de red no bloqueante
+                    state.networkWarning?.let { warning ->
+                        NetworkWarningBadge(message = warning)
+                    }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun NetworkWarningBadge(message: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        contentAlignment = Alignment.TopEnd
+    ) {
+        Surface(
+            color = Color(0xCC000000),   // negro semitransparente
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.WifiOff,
+                    contentDescription = null,
+                    tint = Color.Yellow,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = message,
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 12.sp
+                )
             }
         }
     }
