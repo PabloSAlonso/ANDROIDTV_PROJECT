@@ -116,4 +116,31 @@ class MediaCacheManager @Inject constructor(
             return false
         }
     }
+
+    /**
+     * Elimina del almacenamiento local los archivos que ya no están presentes en el JSON.
+     * @param activeItems Lista de items actualmente activos en el slideshow.
+     */
+    suspend fun cleanUpUnusedMedia(activeItems: List<SlideshowItem>) = withContext(Dispatchers.IO) {
+        Log.d(TAG, "Iniciando limpieza de medios obsoletos...")
+        try {
+            val activeIds = activeItems.map { it.id }.toSet()
+            val localFiles = cacheDir.listFiles()
+            
+            localFiles?.forEach { file ->
+                val fileId = file.nameWithoutExtension
+                if (!activeIds.contains(fileId)) {
+                    Log.d(TAG, "Eliminando archivo obsoleto: ${file.name}")
+                    if (file.delete()) {
+                        Log.d(TAG, "Archivo eliminado con éxito: ${file.name}")
+                    } else {
+                        Log.w(TAG, "No se pudo eliminar el archivo: ${file.name}")
+                    }
+                }
+            }
+            Log.d(TAG, "Limpieza de medios completada.")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error durante la limpieza de medios: ${e.message}")
+        }
+    }
 }

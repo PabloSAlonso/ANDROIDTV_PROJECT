@@ -72,6 +72,11 @@ class SlideshowViewModel @Inject constructor(
                                     _uiState.value = SlideshowUiState.Preloading(current, total)
                                 }
                                 Log.d(TAG, "Precarga finalizada. Iniciando slideshow...")
+                                mediaCacheManager.cleanUpUnusedMedia(items)
+                                
+                                // Mantener el Splash Screen 3 segundos extra tras finalizar las descargas
+                                delay(3000L)
+                                
                                 _uiState.value = SlideshowUiState.Success(slideshowConfig.copy(items = items))
                                 startSlideshowLoop()
                                 startRefreshLoop(config.instancia)
@@ -230,6 +235,10 @@ class SlideshowViewModel @Inject constructor(
                     is RefreshResult.Updated -> {
                         Log.i(TAG, "[REFRESH] Cambios detectados. Aplicando actualización silenciosa...")
                         mediaCacheManager.cacheItems(result.config.items) { _, _ -> }
+                        
+                        // Limpieza de medios que ya no se usan tras la actualización
+                        mediaCacheManager.cleanUpUnusedMedia(result.config.items)
+                        
                         items = result.config.items
                         val currentState = _uiState.value
                         if (currentState is SlideshowUiState.Success) {

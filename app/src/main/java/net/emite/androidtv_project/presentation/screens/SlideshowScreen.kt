@@ -142,27 +142,50 @@ fun SlideshowScreen(
             }
 
             is SlideshowUiState.Preloading -> {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF1E1E1E)), // Fondo oscuro elegante (no negro puro)
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Descargando recursos...",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = Color.White
-                    )
-                    Spacer(modifier = Modifier.padding(8.dp))
-                    Text(
-                        text = "${state.current} / ${state.total}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Gray
-                    )
-                    Spacer(modifier = Modifier.padding(16.dp))
-                    LinearProgressIndicator(
-                        progress = { state.current.toFloat() / state.total.toFloat() },
-                        modifier = Modifier.width(300.dp),
-                        color = Color.White,
-                        trackColor = Color.DarkGray
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Branding / Publicidad
+                        Text(
+                            text = "TEGESTIONA",
+                            style = MaterialTheme.typography.displayMedium,
+                            color = Color.White,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                        )
+                        Text(
+                            text = "Android TV Digital Signage",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = Color.Gray
+                        )
+                        
+                        Spacer(modifier = Modifier.padding(40.dp))
+                        
+                        // Estado de descarga
+                        Text(
+                            text = "Sincronizando contenidos...",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.White.copy(alpha = 0.7f)
+                        )
+                        Spacer(modifier = Modifier.padding(8.dp))
+                        LinearProgressIndicator(
+                            progress = { state.current.toFloat() / state.total.toFloat() },
+                            modifier = Modifier.width(300.dp),
+                            color = Color.White,
+                            trackColor = Color.DarkGray
+                        )
+                        Spacer(modifier = Modifier.padding(4.dp))
+                        Text(
+                            text = "${state.current} / ${state.total}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.Gray
+                        )
+                    }
                 }
             }
 
