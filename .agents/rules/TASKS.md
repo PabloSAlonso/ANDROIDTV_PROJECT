@@ -3,6 +3,13 @@ trigger: model_decision
 description: Tareas del proyecto en android tv
 ---
 
-Debemos añadir un splash-screen para cuando los archivos json están en descarga, para evitar ver una pantalla en negro y además hacer algo de publicidad, mantendremos esa pantalla durante el tiempo que se descargan localmente los archivos y 3 segundos despues desaparecerá y se mostrará el slide de imagenes.
+Mientras aparece lo siguiente en el Logcat deberia de verse la splash screen, sin embargo no veo nada
 
-Además, queremos desinstalar de manera local las imagenes que sean elimindas del json local, para no ocupar memoria de manera innecesaria.
+Cargando slideshow para instancia: demo
+2026-05-06 14:26:32.624 10575-10575 DeviceUtils             net.emite.androidtv_project          D  Obteniendo ID único de dispositivo...
+2026-05-06 14:26:32.630 10575-10575 DeviceUtils             net.emite.androidtv_project          D  ID recuperado de SharedPreferences: 0675c444-e0e2-4581-a886-fd687ea20583
+2026-05-06 14:26:32.630 10575-10575 SlideshowRepo           net.emite.androidtv_project          D  ID de dispositivo detectado: 0675c444-e0e2-4581-a886-fd687ea20583
+2026-05-06 14:26:32.630 10575-10575 SlideshowRepo           net.emite.androidtv_project          D  Iniciando sincronización de pantallas: https://demo.tegestiona.es/pantallas/sync/0675c444-e0e2-4581-a886-fd687ea20583
+2026-05-06 14:26:35.871 10575-10623 ProfileInstaller        net.emite.androidtv_project          D  Installing profile for net.emite.androidtv_project
+
+Cambia la imagen de la splash-screen a simplemente el drawable de wappa_tv

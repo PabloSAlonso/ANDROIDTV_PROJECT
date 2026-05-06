@@ -12,6 +12,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
@@ -50,6 +51,8 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import net.emite.androidtv_project.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
@@ -138,55 +141,16 @@ fun SlideshowScreen(
     ) {
         when (val state = uiState) {
             is SlideshowUiState.Loading -> {
-                Text("Cargando configuración...")
+                SplashScreenContent(progress = null)
             }
 
             is SlideshowUiState.Preloading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0xFF1E1E1E)), // Fondo oscuro elegante (no negro puro)
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // Branding / Publicidad
-                        Text(
-                            text = "TEGESTIONA",
-                            style = MaterialTheme.typography.displayMedium,
-                            color = Color.White,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                        )
-                        Text(
-                            text = "Android TV Digital Signage",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = Color.Gray
-                        )
-                        
-                        Spacer(modifier = Modifier.padding(40.dp))
-                        
-                        // Estado de descarga
-                        Text(
-                            text = "Sincronizando contenidos...",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.White.copy(alpha = 0.7f)
-                        )
-                        Spacer(modifier = Modifier.padding(8.dp))
-                        LinearProgressIndicator(
-                            progress = { state.current.toFloat() / state.total.toFloat() },
-                            modifier = Modifier.width(300.dp),
-                            color = Color.White,
-                            trackColor = Color.DarkGray
-                        )
-                        Spacer(modifier = Modifier.padding(4.dp))
-                        Text(
-                            text = "${state.current} / ${state.total}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.Gray
-                        )
-                    }
-                }
+                val progress = if (state.total > 0) state.current.toFloat() / state.total.toFloat() else 0f
+                SplashScreenContent(
+                    progress = progress,
+                    current = state.current,
+                    total = state.total
+                )
             }
 
             is SlideshowUiState.Error -> {
@@ -243,6 +207,76 @@ fun SlideshowScreen(
                         NetworkWarningBadge(message = warning)
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun SplashScreenContent(
+    progress: Float? = null,
+    current: Int? = null,
+    total: Int? = null
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black), // Fondo negro de seguridad
+        contentAlignment = Alignment.Center
+    ) {
+        // Imagen de fondo a pantalla completa
+        Image(
+            painter = painterResource(id = R.drawable.wappa_banner_tv),
+            contentDescription = "Wappa TV Splash",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop // O ContentScale.FillBounds si se prefiere estirar
+        )
+
+        // Capa de oscurecimiento opcional para mejorar legibilidad de textos sobre la imagen
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.4f))
+        )
+
+        // Contenido superpuesto (Progreso)
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 60.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (progress != null && current != null && total != null) {
+                Text(
+                    text = "Sincronizando contenidos...",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.padding(8.dp))
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.width(400.dp),
+                    color = Color.White,
+                    trackColor = Color.White.copy(alpha = 0.2f)
+                )
+                Spacer(modifier = Modifier.padding(4.dp))
+                Text(
+                    text = "$current / $total descargados",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.7f)
+                )
+            } else {
+                Text(
+                    text = "Conectando con el servidor...",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.padding(8.dp))
+                LinearProgressIndicator(
+                    modifier = Modifier.width(400.dp),
+                    color = Color.White,
+                    trackColor = Color.White.copy(alpha = 0.2f)
+                )
             }
         }
     }
