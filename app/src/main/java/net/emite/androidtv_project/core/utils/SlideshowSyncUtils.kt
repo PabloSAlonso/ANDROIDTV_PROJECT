@@ -43,7 +43,6 @@ object SlideshowSyncUtils {
 
     /**
      * Calcula la duración total (en segundos) de todos los ítems del ciclo.
-     *
      * @param items Lista de ítems activos del slideshow.
      * @return Suma de las duraciones de todos los ítems en segundos.
      */
@@ -53,7 +52,6 @@ object SlideshowSyncUtils {
 
     /**
      * Resultado del cálculo de sincronización para un ítem determinado.
-     *
      * @param item El ítem que debe estar reproduciéndose en el instante actual.
      * @param itemIndex El índice del ítem en la lista activa (base 0).
      * @param remainingSeconds Segundos que quedan para que este ítem termine.

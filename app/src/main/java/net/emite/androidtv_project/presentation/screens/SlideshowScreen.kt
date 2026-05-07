@@ -79,22 +79,20 @@ fun SlideshowScreen(
     val focusRequester = remember { FocusRequester() }
     var logoutJob by remember { mutableStateOf<Job?>(null) }
 
+    val orientation by viewModel.orientation.collectAsState()
+
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }
 
-    LaunchedEffect(uiState) {
-        val state = uiState
-        if (state is SlideshowUiState.Success) {
-            val orientation = state.config.orientation
-            val activity = context.findActivity()
-            if (activity != null) {
-                Log.d("SlideshowScreen", "Cambiando orientación de pantalla a: $orientation")
-                activity.requestedOrientation = if (orientation == "V") {
-                    ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                } else {
-                    ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                }
+    LaunchedEffect(orientation) {
+        val activity = context.findActivity()
+        if (activity != null) {
+            Log.d("SlideshowScreen", "Cambiando orientación de pantalla a: $orientation")
+            activity.requestedOrientation = if (orientation == "V") {
+                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            } else {
+                ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
             }
         }
     }
@@ -218,6 +216,9 @@ fun SplashScreenContent(
     current: Int? = null,
     total: Int? = null
 ) {
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val isPortrait = configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -229,7 +230,7 @@ fun SplashScreenContent(
             painter = painterResource(id = R.drawable.wappa_banner_tv),
             contentDescription = "Wappa TV Splash",
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop // O ContentScale.FillBounds si se prefiere estirar
+            contentScale = if (isPortrait) ContentScale.FillHeight else ContentScale.Crop
         )
 
         // Capa de oscurecimiento opcional para mejorar legibilidad de textos sobre la imagen

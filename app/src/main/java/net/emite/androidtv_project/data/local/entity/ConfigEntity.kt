@@ -7,17 +7,20 @@ import net.emite.androidtv_project.domain.model.Config
 @Entity(tableName = "config")
 data class ConfigEntity(
     @PrimaryKey val id: Int = 0,
-    val instancia: String
+    val instancia: String,
+    val orientation: String = "H"
 ) {
     fun toDomain() = Config(
         id = id,
-        instancia = instancia
+        instancia = instancia,
+        orientation = orientation
     )
 
     companion object {
         fun fromDomain(config: Config) = ConfigEntity(
             id = config.id,
-            instancia = config.instancia
+            instancia = config.instancia,
+            orientation = config.orientation
         )
     }
 }

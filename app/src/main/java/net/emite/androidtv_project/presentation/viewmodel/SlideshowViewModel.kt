@@ -44,6 +44,9 @@ class SlideshowViewModel @Inject constructor(
     private val _currentItem = MutableStateFlow<SlideshowItem?>(null)
     val currentItem = _currentItem.asStateFlow()
 
+    private val _orientation = MutableStateFlow("H")
+    val orientation = _orientation.asStateFlow()
+
     private val videoCompletionSignal = Channel<Unit>(Channel.CONFLATED)
 
     private var items: List<SlideshowItem> = emptyList()
@@ -56,7 +59,8 @@ class SlideshowViewModel @Inject constructor(
         viewModelScope.launch {
             val config = configRepository.getConfig().firstOrNull()
             if (config != null) {
-                Log.d(TAG, "Cargando slideshow para instancia: ${config.instancia}")
+                _orientation.value = config.orientation
+                Log.d(TAG, "Cargando slideshow para instancia: ${config.instancia}, orientación cacheada: ${config.orientation}")
                 val result = slideshowRepository.getSlideshowConfig(config.instancia)
                 result.fold(
                     onSuccess = { slideshowConfig ->
@@ -74,6 +78,12 @@ class SlideshowViewModel @Inject constructor(
                                 Log.d(TAG, "Precarga finalizada. Iniciando slideshow...")
                                 mediaCacheManager.cleanUpUnusedMedia(items)
                                 
+                                // Actualizar orientación si ha cambiado en el JSON remoto
+                                if (slideshowConfig.orientation != _orientation.value) {
+                                    _orientation.value = slideshowConfig.orientation
+                                    configRepository.saveConfig(config.copy(orientation = slideshowConfig.orientation))
+                                }
+
                                 // Mantener el Splash Screen 3 segundos extra tras finalizar las descargas
                                 delay(3000L)
                                 
