@@ -24,6 +24,13 @@ import net.emite.androidtv_project.presentation.screens.SlideshowScreen
 import net.emite.androidtv_project.presentation.theme.AndroidTVProjectTheme
 import net.emite.androidtv_project.presentation.theme.DarkBackground
 import net.emite.androidtv_project.presentation.viewmodel.MainViewModel
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.key.*
+import net.emite.androidtv_project.presentation.screens.BootDebugScreen
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -37,32 +44,63 @@ class MainActivity : ComponentActivity() {
         setContent {
             AndroidTVProjectTheme {
                 val hasInstance by mainViewModel.hasInstance.collectAsState()
+                var showBootDebug by remember { mutableStateOf(false) }
+                var lastBackClickTime by remember { mutableLongStateOf(0L) }
+                var backClickCount by remember { mutableIntStateOf(0) }
 
-                when (hasInstance) {
-                    null -> {
-                        // Pantalla de carga inicial mientras comprobamos la DB
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(DarkBackground),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                androidx.compose.foundation.Image(
-                                    painter = androidx.compose.ui.res.painterResource(id = R.drawable.wappa_banner_tv),
-                                    contentDescription = "Logo",
-                                    modifier = Modifier.width(300.dp).padding(bottom = 24.dp)
-                                )
-                                Text(text = "Cargando...")
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .onKeyEvent { event ->
+                            if (event.key == Key.Back && 
+                                event.type == KeyEventType.KeyUp) {
+                                val currentTime = System.currentTimeMillis()
+                                if (currentTime - lastBackClickTime < 1000L) {
+                                    backClickCount++
+                                    if (backClickCount >= 5) {
+                                        showBootDebug = true
+                                        backClickCount = 0
+                                    }
+                                } else {
+                                    backClickCount = 1
+                                }
+                                lastBackClickTime = currentTime
+                            }
+                            false
+                        }
+                ) {
+                    when (hasInstance) {
+                        null -> {
+                            // Pantalla de carga inicial mientras comprobamos la DB
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(DarkBackground),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    androidx.compose.foundation.Image(
+                                        painter = androidx.compose.ui.res.painterResource(id = R.drawable.wappa_banner_tv),
+                                        contentDescription = "Logo",
+                                        modifier = Modifier.width(300.dp).padding(bottom = 24.dp)
+                                    )
+                                    Text(text = "Cargando...")
+                                }
                             }
                         }
+                        false -> {
+                            SetupScreen()
+                        }
+                        true -> {
+                            // Pantalla del Slideshow activa
+                            SlideshowScreen()
+                        }
                     }
-                    false -> {
-                        SetupScreen()
-                    }
-                    true -> {
-                        // Pantalla del Slideshow activa
-                        SlideshowScreen()
+
+                    if (showBootDebug) {
+                        BootDebugScreen(
+                            onDismiss = { showBootDebug = false }
+                        )
                     }
                 }
             }
