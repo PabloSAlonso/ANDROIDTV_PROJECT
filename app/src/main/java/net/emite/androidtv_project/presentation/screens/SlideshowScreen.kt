@@ -272,7 +272,7 @@ fun SplashScreenContent(
                     color = Color.White
                 )
                 Spacer(modifier = Modifier.padding(8.dp))
-                LinearProgressIndicator(
+                LinearProgressIndicator( // Barra blanca de progreso
                     modifier = Modifier.width(400.dp),
                     color = Color.White,
                     trackColor = Color.White.copy(alpha = 0.2f)
