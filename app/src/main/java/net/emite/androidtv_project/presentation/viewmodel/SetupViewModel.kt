@@ -6,6 +6,9 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import net.emite.androidtv_project.domain.model.Config
 import net.emite.androidtv_project.domain.repository.ConfigRepository
@@ -19,13 +22,41 @@ class SetupViewModel @Inject constructor(
     private val _saved = MutableStateFlow(false)
     val saved = _saved.asStateFlow()
 
+    val config: StateFlow<Config?> = configRepository.getConfig()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+
     fun saveInstancia(instancia: String) {
         val trimmed = instancia.trim()
         if (trimmed.isBlank()) return
         viewModelScope.launch {
-            Log.d("SetupVM", "Guardando instancia: $trimmed")
-            configRepository.saveConfig(Config(instancia = trimmed))
+            val currentConfig = config.value ?: Config(instancia = trimmed)
+            configRepository.saveConfig(currentConfig.copy(instancia = trimmed))
             _saved.value = true
+        }
+    }
+
+    fun toggleVerticalMode() {
+        viewModelScope.launch {
+            val current = config.value ?: Config(instancia = "")
+            val newVertical = !current.isVertical
+            val newInverted = if (!newVertical) false else current.isInverted
+            Log.d("SetupVM", "Toggling vertical: $newVertical (inverted: $newInverted)")
+            configRepository.saveConfig(current.copy(isVertical = newVertical, isInverted = newInverted))
+        }
+    }
+
+    fun toggleInvertedMode() {
+        viewModelScope.launch {
+            val current = config.value ?: Config(instancia = "")
+            if (current.isVertical) {
+                val newInverted = !current.isInverted
+                Log.d("SetupVM", "Toggling inverted: $newInverted")
+                configRepository.saveConfig(current.copy(isInverted = newInverted))
+            }
         }
     }
 }

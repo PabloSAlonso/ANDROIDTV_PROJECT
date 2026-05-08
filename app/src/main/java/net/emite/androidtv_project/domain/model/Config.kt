@@ -3,5 +3,7 @@ package net.emite.androidtv_project.domain.model
 data class Config(
     val id: Int = 0,
     val instancia: String,
-    val orientation: String = "H"
+    val orientation: String = "H",
+    val isVertical: Boolean = false,
+    val isInverted: Boolean = false
 )

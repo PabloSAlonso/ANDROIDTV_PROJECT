@@ -9,7 +9,7 @@ import net.emite.androidtv_project.data.local.dao.ConfigDao
 import net.emite.androidtv_project.data.local.entity.CachedJsonEntity
 import net.emite.androidtv_project.data.local.entity.ConfigEntity
 
-@Database(entities = [ConfigEntity::class, CachedJsonEntity::class], version = 3, exportSchema = false)
+@Database(entities = [ConfigEntity::class, CachedJsonEntity::class], version = 4, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun configDao(): ConfigDao
     abstract fun cachedJsonDao(): CachedJsonDao

@@ -13,7 +13,10 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Checkbox
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -44,6 +47,7 @@ fun SetupScreen(
 ) {
     var instancia by remember { mutableStateOf("") }
     val saved by viewModel.saved.collectAsState()
+    val config by viewModel.config.collectAsState()
 
     val focusRequester = remember { FocusRequester() }
     var textFieldFocused by remember { mutableStateOf(false) }
@@ -99,6 +103,47 @@ fun SetupScreen(
                 onDismissRequest = { menuExpanded = false },
                 modifier = Modifier.background(Color(0xFF4A0000))
             ) {
+                val currentConfig = config
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            androidx.compose.material3.Text("Modo Vertical", color = Color.White)
+                            androidx.compose.material3.Text(
+                                "Gira la pantalla 90º para montajes verticales",
+                                fontSize = 10.sp,
+                                color = Color.Gray
+                            )
+                        }
+                    },
+                    trailingIcon = {
+                        androidx.compose.material3.Checkbox(
+                            checked = currentConfig?.isVertical ?: false,
+                            onCheckedChange = null
+                        )
+                    },
+                    onClick = { viewModel.toggleVerticalMode() }
+                )
+                if (currentConfig?.isVertical == true) {
+                    DropdownMenuItem(
+                        text = {
+                            Column {
+                                androidx.compose.material3.Text("Invertir Orientación", color = Color.White)
+                                androidx.compose.material3.Text(
+                                    "Cambia el sentido del giro (Izquierda/Derecha)",
+                                    fontSize = 10.sp,
+                                    color = Color.Gray
+                                )
+                            }
+                        },
+                        trailingIcon = {
+                            androidx.compose.material3.Checkbox(
+                                checked = currentConfig.isInverted,
+                                onCheckedChange = null
+                            )
+                        },
+                        onClick = { viewModel.toggleInvertedMode() }
+                    )
+                }
                 DropdownMenuItem(
                     text = { androidx.compose.material3.Text("Minimizar (Dejar en segundo plano)", color = Color.White) },
                     onClick = {
