@@ -67,6 +67,12 @@ import net.emite.androidtv_project.presentation.theme.DarkBackground
 import net.emite.androidtv_project.presentation.viewmodel.SlideshowUiState
 import net.emite.androidtv_project.presentation.viewmodel.SlideshowViewModel
 
+/**
+ * Pantalla principal del carrusel (slideshow).
+ * Gestiona la visualización de medios, la orientación de la pantalla y el cierre de sesión mediante pulsación larga.
+ * 
+ * @param viewModel ViewModel que orquesta el estado del carrusel.
+ */
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun SlideshowScreen(
@@ -81,10 +87,12 @@ fun SlideshowScreen(
 
     val orientation by viewModel.orientation.collectAsState()
 
+    // Solicita el foco para capturar eventos de teclado/mando
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }
 
+    // Aplica la orientación de pantalla (Horizontal/Vertical) a la Activity de Android
     LaunchedEffect(orientation) {
         val activity = context.findActivity()
         if (activity != null) {
@@ -102,6 +110,7 @@ fun SlideshowScreen(
             .fillMaxSize()
             .background(DarkBackground)
             .onKeyEvent { event ->
+                // Gestión del cierre de sesión: mantener pulsado "ATRÁS" durante 3 segundos
                 if (event.key == Key.Back || event.key == Key.Escape) {
                     when (event.type) {
                         KeyEventType.KeyDown -> {
@@ -163,6 +172,7 @@ fun SlideshowScreen(
 
             is SlideshowUiState.Success -> {
                 Box(modifier = Modifier.fillMaxSize()) {
+                    // Transición suave entre elementos (Fade In/Out)
                     AnimatedContent(
                         targetState = currentItem,
                         transitionSpec = {
@@ -200,7 +210,7 @@ fun SlideshowScreen(
                         }
                     }
 
-                    // Aviso de red no bloqueante
+                    // Aviso de red no bloqueante (esquina superior derecha)
                     state.networkWarning?.let { warning ->
                         NetworkWarningBadge(message = warning)
                     }
@@ -210,6 +220,10 @@ fun SlideshowScreen(
     }
 }
 
+/**
+ * Contenido de la pantalla de bienvenida / precarga.
+ * Muestra el banner corporativo y una barra de progreso de descargas.
+ */
 @Composable
 fun SplashScreenContent(
     progress: Float? = null,
@@ -222,10 +236,10 @@ fun SplashScreenContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black), // Fondo negro de seguridad
+            .background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
-        // Imagen de fondo a pantalla completa
+        // Imagen corporativa a pantalla completa
         Image(
             painter = painterResource(id = R.drawable.wappa_banner_tv),
             contentDescription = "Wappa TV Splash",
@@ -233,14 +247,13 @@ fun SplashScreenContent(
             contentScale = if (isPortrait) ContentScale.FillHeight else ContentScale.Crop
         )
 
-        // Capa de oscurecimiento opcional para mejorar legibilidad de textos sobre la imagen
+        // Capa de oscurecimiento para mejorar la lectura de los textos blancos
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.4f))
         )
 
-        // Contenido superpuesto (Progreso)
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -273,7 +286,7 @@ fun SplashScreenContent(
                     color = Color.White
                 )
                 Spacer(modifier = Modifier.padding(8.dp))
-                LinearProgressIndicator( // Barra blanca de progreso
+                LinearProgressIndicator(
                     modifier = Modifier.width(400.dp),
                     color = Color.White,
                     trackColor = Color.White.copy(alpha = 0.2f)
@@ -283,6 +296,9 @@ fun SplashScreenContent(
     }
 }
 
+/**
+ * Indicador visual discreto que informa sobre problemas de conectividad.
+ */
 @Composable
 fun NetworkWarningBadge(message: String) {
     Box(
@@ -292,7 +308,7 @@ fun NetworkWarningBadge(message: String) {
         contentAlignment = Alignment.TopEnd
     ) {
         Surface(
-            color = Color(0xCC000000),   // negro semitransparente
+            color = Color(0xCC000000),
             shape = RoundedCornerShape(8.dp)
         ) {
             Row(
@@ -317,6 +333,9 @@ fun NetworkWarningBadge(message: String) {
     }
 }
 
+/**
+ * Función de extensión para encontrar la [Activity] desde un [Context].
+ */
 fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.findActivity()

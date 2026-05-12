@@ -17,13 +17,17 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Text
 import dagger.hilt.android.AndroidEntryPoint
-import net.emite.androidtv_project.presentation.screens.BootDebugScreen
 import net.emite.androidtv_project.presentation.screens.SetupScreen
 import net.emite.androidtv_project.presentation.screens.SlideshowScreen
 import net.emite.androidtv_project.presentation.theme.AndroidTVProjectTheme
 import net.emite.androidtv_project.presentation.theme.DarkBackground
 import net.emite.androidtv_project.presentation.viewmodel.MainViewModel
 
+/**
+ * Actividad principal de la aplicación Android TV.
+ * Se encarga de la navegación inicial entre la pantalla de configuración y el slideshow,
+ * así como de gestionar la rotación dinámica de la interfaz.
+ */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     
@@ -32,6 +36,8 @@ class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalTvMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Mantiene la pantalla encendida permanentemente mientras la app está activa
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         
         setContent {
@@ -48,7 +54,8 @@ class MainActivity : ComponentActivity() {
                         .background(DarkBackground),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Contenedor que rota el contenido si es necesario para llenar toda la pantalla
+                    // Contenedor dinámico que aplica rotación si la configuración lo requiere.
+                    // En modo vertical, intercambia ancho y alto y aplica una rotación de 90 grados.
                     Box(
                         modifier = if (isVertical) {
                             Modifier
@@ -72,6 +79,8 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier
                                 .fillMaxSize()
                                 .onKeyEvent { event ->
+                                    // Lógica para detectar 5 pulsaciones rápidas del botón "Back"
+                                    // Esto podría usarse para menús de depuración ocultos.
                                     if (event.key == Key.Back && 
                                         event.type == KeyEventType.KeyUp) {
                                         val currentTime = System.currentTimeMillis()
@@ -91,6 +100,7 @@ class MainActivity : ComponentActivity() {
                         ) {
                             when (hasInstance) {
                                 null -> {
+                                    // Estado de carga inicial mientras se recupera la configuración local
                                     Box(
                                         modifier = Modifier
                                             .fillMaxSize()
@@ -108,17 +118,13 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                                 false -> {
+                                    // Si no hay instancia configurada, ir a la pantalla de configuración
                                     SetupScreen()
                                 }
                                 true -> {
+                                    // Si hay instancia, iniciar el carrusel de diapositivas
                                     SlideshowScreen()
                                 }
-                            }
-
-                            if (showBootDebug) {
-                                BootDebugScreen(
-                                    onDismiss = { showBootDebug = false }
-                                )
                             }
                         }
                     }

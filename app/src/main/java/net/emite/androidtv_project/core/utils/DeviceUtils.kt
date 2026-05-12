@@ -6,19 +6,31 @@ import android.provider.Settings
 import android.util.Log
 import java.util.UUID
 
+/**
+ * Utilidades para la identificación única y gestión del dispositivo hardware.
+ */
 object DeviceUtils {
 
     private const val TAG = "DeviceUtils"
     private const val PREFS_NAME = "device_prefs"
     private const val PREF_DEVICE_UUID = "device_uuid"
 
-    // Bug conocido en dispositivos antiguos (Android 2.2), buena práctica filtrarlo
+    /** 
+     * ID de Android conocido por ser defectuoso en ciertos dispositivos antiguos.
+     */
     private const val INVALID_ANDROID_ID = "9774d56d682e549c"
 
     /**
-     * Obtiene un identificador único persistente para este dispositivo.
-     * Prioriza SharedPreferences por retrocompatibilidad. Si se pierden los datos,
-     * utiliza el ANDROID_ID (persistente a borrado de datos/reinstalaciones).
+     * Obtiene un identificador único persistente para el dispositivo.
+     * 
+     * El proceso de obtención sigue esta jerarquía:
+     * 1. Recupera un ID previamente guardado en SharedPreferences.
+     * 2. Si no existe, intenta obtener el ANDROID_ID del sistema.
+     * 3. Si el ANDROID_ID no es válido o está ausente, genera un UUID aleatorio.
+     * 4. Persiste el ID resultante para futuras consultas.
+     * 
+     * @param context Contexto necesario para acceder a SharedPreferences y ContentResolver.
+     * @return String con el identificador único del dispositivo.
      */
     @SuppressLint("HardwareIds")
     fun getDeviceId(context: Context): String {

@@ -17,6 +17,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
+/**
+ * Implementación de [SlideshowRepository] que gestiona la sincronización de contenidos.
+ * Combina peticiones a la API remota con una estrategia de caché local para permitir
+ * el funcionamiento sin conexión.
+ *
+ * @property api Interfaz de acceso a la API remota.
+ * @property cachedJsonDao DAO para la persistencia del JSON en la base de datos.
+ * @property context Contexto de la aplicación.
+ */
 class SlideshowRepositoryImpl @Inject constructor(
     private val api: SlideshowApi,
     private val cachedJsonDao: CachedJsonDao,
@@ -26,6 +35,14 @@ class SlideshowRepositoryImpl @Inject constructor(
     private val TAG = "SlideshowRepo"
     private val jsonParser = Json { ignoreUnknownKeys = true }
 
+    /**
+     * Obtiene la configuración del slideshow desde el servidor.
+     * Si la petición falla, intenta recuperar la última configuración válida de la caché local.
+     * 
+     * @param instancia Identificador de la instancia del dispositivo.
+     * @return [Result] con la configuración procesada.
+     * @throws Exception "MAC_NOT_FOUND" si el servidor no reconoce el dispositivo.
+     */
     override suspend fun getSlideshowConfig(instancia: String): Result<SlideshowConfig> {
         return try {
             val deviceId = DeviceUtils.getDeviceId(context)
@@ -45,7 +62,7 @@ class SlideshowRepositoryImpl @Inject constructor(
                 throw Exception("MAC_NOT_FOUND")
             }
 
-            // Guardar en caché local
+            // Guardar en caché local para uso offline
             cachedJsonDao.upsertCachedJson(
                 CachedJsonEntity(
                     rawJson = responseBody,
@@ -64,6 +81,13 @@ class SlideshowRepositoryImpl @Inject constructor(
         }
     }
 
+    /**
+     * Comprueba si hay una nueva versión del JSON en el servidor.
+     * Si el JSON es idéntico al almacenado localmente, no realiza cambios.
+     * 
+     * @param instancia Identificador de la instancia del dispositivo.
+     * @return [RefreshResult] indicando el estado de la actualización.
+     */
     override suspend fun checkForUpdates(instancia: String): RefreshResult {
         return try {
             val deviceId = DeviceUtils.getDeviceId(context)
@@ -96,21 +120,24 @@ class SlideshowRepositoryImpl @Inject constructor(
         }
     }
 
+    /**
+     * Obtiene la configuración guardada localmente si existe.
+     * @return [SlideshowConfig] o null si no hay caché disponible.
+     */
     override suspend fun getLocalCachedConfig(): SlideshowConfig? {
         return try {
             val localEntity = cachedJsonDao.getCachedJson()
             if (localEntity != null) {
-                // Como no tenemos la 'instancia' aquí fácilmente (aunque solemos tener una sola activa)
-                // Usamos un placeholder o intentamos inferirla si es necesario.
-                // Para simplificar, asumimos que parseJsonToConfig puede manejarlo o que recuperamos la instancia de otro lado.
-                // En este flujo, getLocalCachedConfig se usará poco, pero lo implementamos:
-                parseJsonToConfig(localEntity.rawJson, "demo") // demo como fallback
+                parseJsonToConfig(localEntity.rawJson, "demo")
             } else null
         } catch (e: Exception) {
             null
         }
     }
 
+    /**
+     * Intenta cargar la configuración desde la base de datos local.
+     */
     private suspend fun loadFromCache(instancia: String): Result<SlideshowConfig> {
         return try {
             val localEntity = cachedJsonDao.getCachedJson()
@@ -126,6 +153,9 @@ class SlideshowRepositoryImpl @Inject constructor(
         }
     }
 
+    /**
+     * Convierte el JSON crudo en un objeto de dominio [SlideshowConfig].
+     */
     private suspend fun parseJsonToConfig(rawJson: String, instancia: String): SlideshowConfig = withContext(Dispatchers.Default) {
         val parsedResponse = jsonParser.decodeFromString<SlideshowResponse>(rawJson)
         val orientation = parsedResponse.cfg.orientacion ?: "H"

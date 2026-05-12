@@ -40,6 +40,17 @@ import androidx.compose.ui.res.painterResource
 import net.emite.androidtv_project.R
 import kotlin.system.exitProcess
 
+/**
+ * Pantalla de configuración inicial de la aplicación.
+ * 
+ * Permite al usuario:
+ * 1. Introducir el nombre de la instancia del servidor Tegestiona.
+ * 2. Configurar la orientación de la pantalla (Horizontal/Vertical).
+ * 3. Invertir el sentido de la rotación vertical.
+ * 4. Gestionar el cierre o minimización de la aplicación.
+ * 
+ * @param viewModel ViewModel encargado de persistir la configuración.
+ */
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun SetupScreen(
@@ -57,11 +68,12 @@ fun SetupScreen(
     var menuFocused by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
+    // Solicita el foco inicial en el campo de texto para facilitar el uso con control remoto
     LaunchedEffect(Unit) {
         try {
             focusRequester.requestFocus()
         } catch (e: Exception) {
-            // Ignore if not attached yet
+            // Ignorar si el componente no está listo aún
         }
     }
 
@@ -75,7 +87,7 @@ fun SetupScreen(
             ),
         contentAlignment = Alignment.Center
     ) {
-        // Dropdown Menu Opciones
+        // Menú de opciones avanzadas (esquina superior derecha)
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -104,6 +116,7 @@ fun SetupScreen(
                 modifier = Modifier.background(Color(0xFF4A0000))
             ) {
                 val currentConfig = config
+                // Opción para activar el modo vertical
                 DropdownMenuItem(
                     text = {
                         Column {
@@ -123,6 +136,8 @@ fun SetupScreen(
                     },
                     onClick = { viewModel.toggleVerticalMode() }
                 )
+                
+                // Opción para invertir la orientación vertical (solo visible si el modo vertical está activo)
                 if (currentConfig?.isVertical == true) {
                     DropdownMenuItem(
                         text = {
@@ -144,6 +159,8 @@ fun SetupScreen(
                         onClick = { viewModel.toggleInvertedMode() }
                     )
                 }
+                
+                // Opción para minimizar la aplicación
                 DropdownMenuItem(
                     text = { androidx.compose.material3.Text("Minimizar (Dejar en segundo plano)", color = Color.White) },
                     onClick = {
@@ -151,6 +168,8 @@ fun SetupScreen(
                         (context as? Activity)?.moveTaskToBack(true)
                     }
                 )
+                
+                // Opción para cerrar la aplicación
                 DropdownMenuItem(
                     text = { androidx.compose.material3.Text("Cerrar app completamente", color = Color.White) },
                     onClick = {
@@ -162,6 +181,7 @@ fun SetupScreen(
             }
         }
 
+        // Tarjeta central de configuración
         androidx.compose.material3.Card(
             modifier = Modifier
                 .width(480.dp)
@@ -197,6 +217,7 @@ fun SetupScreen(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
+                // Campo de entrada de texto para la instancia
                 androidx.compose.material3.OutlinedTextField(
                     value = instancia,
                     onValueChange = { instancia = it },
@@ -222,6 +243,7 @@ fun SetupScreen(
                     )
                 )
 
+                // Vista previa de la URL resultante
                 Text(
                     text = "https://$instancia.tegestiona.es",
                     fontSize = 12.sp,
@@ -229,6 +251,7 @@ fun SetupScreen(
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
 
+                // Botón para guardar la configuración
                 androidx.compose.material3.Button(
                     onClick = { viewModel.saveInstancia(instancia) },
                     modifier = Modifier

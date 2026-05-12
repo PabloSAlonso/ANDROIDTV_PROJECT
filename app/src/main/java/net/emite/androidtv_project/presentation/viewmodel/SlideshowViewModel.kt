@@ -28,6 +28,15 @@ import coil.imageLoader
 import coil.request.ImageRequest
 import javax.inject.Inject
 
+/**
+ * ViewModel que gestiona la lógica central del carrusel de diapositivas (slideshow).
+ * Se encarga de la sincronización determinística, la precarga de medios y las actualizaciones silenciosas.
+ * 
+ * @property slideshowRepository Repositorio para datos del carrusel.
+ * @property configRepository Repositorio para la configuración del dispositivo.
+ * @property mediaCacheManager Gestor de la caché local de medios.
+ * @property context Contexto de la aplicación.
+ */
 @HiltViewModel
 class SlideshowViewModel @Inject constructor(
     private val slideshowRepository: SlideshowRepository,
@@ -39,22 +48,40 @@ class SlideshowViewModel @Inject constructor(
     private val TAG = "SlideshowVM"
 
     private val _uiState = MutableStateFlow<SlideshowUiState>(SlideshowUiState.Loading)
+    /**
+     * Estado actual de la interfaz de usuario.
+     */
     val uiState = _uiState.asStateFlow()
 
     private val _currentItem = MutableStateFlow<SlideshowItem?>(null)
+    /**
+     * Elemento multimedia que debe mostrarse actualmente.
+     */
     val currentItem = _currentItem.asStateFlow()
 
     private val _orientation = MutableStateFlow("H")
+    /**
+     * Orientación de la pantalla ("H" o "V").
+     */
     val orientation = _orientation.asStateFlow()
 
+    /**
+     * Canal para recibir señales de finalización de video desde la UI.
+     */
     private val videoCompletionSignal = Channel<Unit>(Channel.CONFLATED)
 
+    /**
+     * Lista completa de elementos recibidos del servidor.
+     */
     private var items: List<SlideshowItem> = emptyList()
 
     init {
         loadSlideshow()
     }
 
+    /**
+     * Carga inicial de la configuración y el carrusel.
+     */
     private fun loadSlideshow() {
         viewModelScope.launch {
             val config = configRepository.getConfig().firstOrNull()
@@ -65,7 +92,6 @@ class SlideshowViewModel @Inject constructor(
                 result.fold(
                     onSuccess = { slideshowConfig ->
                         val remoteItems = slideshowConfig.items
-
                         items = remoteItems
                         
                         if (items.isNotEmpty()) {
@@ -84,7 +110,7 @@ class SlideshowViewModel @Inject constructor(
                                     configRepository.saveConfig(config.copy(orientation = slideshowConfig.orientation))
                                 }
 
-                                // Mantener el Splash Screen 3 segundos extra tras finalizar las descargas
+                                // Retardo visual para que el usuario vea el banner de carga finalizado
                                 delay(3000L)
                                 
                                 _uiState.value = SlideshowUiState.Success(slideshowConfig.copy(items = items))
@@ -117,6 +143,9 @@ class SlideshowViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Filtra los elementos activos basándose en la programación semanal y horaria.
+     */
     private suspend fun filterActiveItems(items: List<SlideshowItem>): List<SlideshowItem> = withContext(Dispatchers.Default) {
         val calendar = Calendar.getInstance()
         val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK) - 1
@@ -137,6 +166,9 @@ class SlideshowViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Precarga el siguiente elemento en segundo plano para una transición fluida.
+     */
     private fun preloadNextItem(nextItem: SlideshowItem) {
         if (nextItem.type == MediaType.IMAGE) {
             Log.d(TAG, "Precargando siguiente imagen: ${nextItem.mediaUrl}")
@@ -147,12 +179,15 @@ class SlideshowViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Inicia el ciclo infinito de reproducción sincronizada.
+     * Utiliza la hora del sistema para calcular el slot temporal actual.
+     */
     private fun startSlideshowLoop() {
         viewModelScope.launch {
             while (true) {
                 val activeItems = filterActiveItems(items)
 
-                // ─── Log de auditoría de sincronización ────────────────────────────────────
                 if (activeItems.isEmpty()) {
                     Log.w(TAG, "[SYNC] No hay ítems activos en este momento. Reintentando en 10s...")
                     delay(10000L)
@@ -172,7 +207,6 @@ class SlideshowViewModel @Inject constructor(
                 Log.d(TAG, "[SYNC] Segundos desde medianoche    : ${secondsSinceMidnight}s")
                 Log.d(TAG, "[SYNC] Posición en el ciclo         : ${secondsSinceMidnight}s % ${totalDurationSec}s = ${positionInCycle}s")
 
-                // ─── Cálculo del ítem actual ───────────────────────────────────────────────
                 val syncResult = SlideshowSyncUtils.findCurrentSynchronizedItem(activeItems)
 
                 if (syncResult == null) {
@@ -195,7 +229,7 @@ class SlideshowViewModel @Inject constructor(
 
                 _currentItem.value = currentItem
 
-                // ─── Espera el tiempo restante del slot actual ─────────────────────────────
+                // Espera el tiempo restante del slot actual
                 when (currentItem.type) {
                     MediaType.IMAGE -> {
                         delay(remainingSeconds * 1000L)
@@ -213,6 +247,9 @@ class SlideshowViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Obtiene la URI local (para videos cacheados) o la remota (para imágenes o fallbacks).
+     */
     fun getLocalUri(item: SlideshowItem): String {
         return if (item.type == MediaType.VIDEO) {
             val file = mediaCacheManager.getLocalFileForItem(item)
@@ -222,21 +259,26 @@ class SlideshowViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Callback invocado por la vista cuando termina la reproducción de un video.
+     */
     fun onMediaVideoEnded() {
         videoCompletionSignal.trySend(Unit)
     }
 
+    /**
+     * Inicia el bucle de actualización en segundo plano.
+     * Comprueba si hay cambios en el JSON cada 15 minutos.
+     */
     private fun startRefreshLoop(instancia: String) {
         viewModelScope.launch {
             while (true) {
-                // Esperar 15 minutos antes de la primera comprobación (la carga inicial ya trajo datos frescos)
                 delay(15 * 60 * 1000L)
                 Log.d(TAG, "[REFRESH] Iniciando comprobación de cambios en el JSON...")
 
                 when (val result = slideshowRepository.checkForUpdates(instancia)) {
                     is RefreshResult.NoChange -> {
                         Log.d(TAG, "[REFRESH] Sin cambios. Slideshow continúa.")
-                        // Limpiar aviso de red si estaba activo
                         val currentState = _uiState.value
                         if (currentState is SlideshowUiState.Success && currentState.networkWarning != null) {
                             _uiState.value = currentState.copy(networkWarning = null)
@@ -245,8 +287,6 @@ class SlideshowViewModel @Inject constructor(
                     is RefreshResult.Updated -> {
                         Log.i(TAG, "[REFRESH] Cambios detectados. Aplicando actualización silenciosa...")
                         mediaCacheManager.cacheItems(result.config.items) { _, _ -> }
-                        
-                        // Limpieza de medios que ya no se usan tras la actualización
                         mediaCacheManager.cleanUpUnusedMedia(result.config.items)
                         
                         items = result.config.items
@@ -273,6 +313,9 @@ class SlideshowViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Elimina la configuración local para volver a la pantalla de login/setup.
+     */
     fun logout() {
         Log.i(TAG, "Ejecutando cierre de sesión (Logout)")
         viewModelScope.launch {
@@ -281,12 +324,19 @@ class SlideshowViewModel @Inject constructor(
     }
 }
 
+/**
+ * Estados posibles de la interfaz de usuario del slideshow.
+ */
 sealed class SlideshowUiState {
+    /** Cargando configuración inicial. */
     object Loading : SlideshowUiState()
+    /** Descargando y preparando archivos multimedia. */
     data class Preloading(val current: Int, val total: Int) : SlideshowUiState()
+    /** Slideshow activo y reproduciéndose correctamente. */
     data class Success(
         val config: SlideshowConfig,
         val networkWarning: String? = null
     ) : SlideshowUiState()
+    /** Ocurrió un error crítico que impide la visualización. */
     data class Error(val message: String) : SlideshowUiState()
 }

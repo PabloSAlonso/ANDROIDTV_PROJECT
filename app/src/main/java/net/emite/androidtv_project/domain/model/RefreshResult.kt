@@ -1,12 +1,24 @@
 package net.emite.androidtv_project.domain.model
 
+/**
+ * Representa el resultado de una operación de refresco de configuración.
+ */
 sealed class RefreshResult {
-    /** El JSON remoto es idéntico al local. No hay nada que hacer. */
+    /** 
+     * Indica que el JSON remoto es idéntico al local. 
+     * No hay cambios que aplicar. 
+     */
     object NoChange : RefreshResult()
 
-    /** El JSON ha cambiado. Config nueva lista para aplicar. */
+    /** 
+     * Indica que el JSON ha cambiado y se ha procesado correctamente. 
+     * @property config La nueva configuración del slideshow lista para ser aplicada.
+     */
     data class Updated(val config: SlideshowConfig) : RefreshResult()
 
-    /** Fallo de red u otro error. Se proporciona el mensaje para el aviso. */
+    /** 
+     * Indica que ocurrió un error durante el proceso de refresco (red, parseo, etc.).
+     * @property message Descripción del error ocurrido.
+     */
     data class NetworkError(val message: String) : RefreshResult()
 }

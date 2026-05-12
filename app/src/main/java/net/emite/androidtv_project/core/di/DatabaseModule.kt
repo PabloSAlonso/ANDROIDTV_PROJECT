@@ -12,10 +12,18 @@ import net.emite.androidtv_project.data.local.dao.CachedJsonDao
 import net.emite.androidtv_project.data.local.dao.ConfigDao
 import javax.inject.Singleton
 
+/**
+ * Módulo de Hilt para la provisión de dependencias relacionadas con la base de datos local.
+ */
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
+    /**
+     * Provee la instancia única de la base de datos Room.
+     * @param context Contexto de la aplicación.
+     * @return Instancia de [AppDatabase].
+     */
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
@@ -28,9 +36,15 @@ object DatabaseModule {
             .build()
     }
 
+    /**
+     * Provee el DAO para la gestión de configuración.
+     */
     @Provides
     fun provideConfigDao(db: AppDatabase): ConfigDao = db.configDao()
 
+    /**
+     * Provee el DAO para la gestión de la caché de JSON.
+     */
     @Provides
     fun provideCachedJsonDao(db: AppDatabase): CachedJsonDao = db.cachedJsonDao()
 }

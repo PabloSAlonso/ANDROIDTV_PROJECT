@@ -14,14 +14,26 @@ import net.emite.androidtv_project.domain.model.Config
 import net.emite.androidtv_project.domain.repository.ConfigRepository
 import javax.inject.Inject
 
+/**
+ * ViewModel encargado de la lógica de la pantalla de configuración inicial.
+ * Permite al usuario definir la instancia del dispositivo y ajustar la orientación de pantalla.
+ * 
+ * @property configRepository Repositorio para la gestión de la configuración local.
+ */
 @HiltViewModel
 class SetupViewModel @Inject constructor(
     private val configRepository: ConfigRepository
 ) : ViewModel() {
 
     private val _saved = MutableStateFlow(false)
+    /**
+     * Flujo que emite true cuando los cambios han sido persistidos correctamente.
+     */
     val saved = _saved.asStateFlow()
 
+    /**
+     * Flujo con la configuración actual cargada desde la base de datos.
+     */
     val config: StateFlow<Config?> = configRepository.getConfig()
         .stateIn(
             scope = viewModelScope,
@@ -29,6 +41,10 @@ class SetupViewModel @Inject constructor(
             initialValue = null
         )
 
+    /**
+     * Guarda el nombre de la instancia configurada por el usuario.
+     * @param instancia El nombre de la instancia (ej. "emite").
+     */
     fun saveInstancia(instancia: String) {
         val trimmed = instancia.trim()
         if (trimmed.isBlank()) return
@@ -39,6 +55,10 @@ class SetupViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Alterna entre modo horizontal y vertical.
+     * Al desactivar el modo vertical, se resetea automáticamente el modo invertido.
+     */
     fun toggleVerticalMode() {
         viewModelScope.launch {
             val current = config.value ?: Config(instancia = "")
@@ -49,6 +69,10 @@ class SetupViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Alterna entre orientación vertical normal e invertida (180 grados).
+     * Solo tiene efecto si el modo vertical está activo.
+     */
     fun toggleInvertedMode() {
         viewModelScope.launch {
             val current = config.value ?: Config(instancia = "")

@@ -10,13 +10,22 @@ import kotlinx.coroutines.flow.stateIn
 import net.emite.androidtv_project.domain.repository.ConfigRepository
 import javax.inject.Inject
 
+/**
+ * ViewModel principal que orquesta el estado global de la aplicación.
+ * Determina si el dispositivo tiene una configuración válida para decidir la pantalla inicial.
+ * 
+ * @property configRepository Repositorio para acceder a la configuración persistente.
+ */
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val configRepository: ConfigRepository
 ) : ViewModel() {
 
     /**
-     * null = cargando, false = sin instancia configurada, true = instancia guardada → ir al Slideshow
+     * Estado que indica si existe una instancia configurada.
+     * - `null`: Cargando estado inicial.
+     * - `false`: No hay instancia (mostrar pantalla de configuración).
+     * - `true`: Hay una instancia válida (proceder al slideshow).
      */
     val hasInstance: StateFlow<Boolean?> = configRepository.getConfig()
         .map { config -> config?.instancia?.isNotBlank() == true }
@@ -26,6 +35,9 @@ class MainViewModel @Inject constructor(
             initialValue = null
         )
 
+    /**
+     * Flujo de datos con la configuración completa del dispositivo.
+     */
     val config = configRepository.getConfig()
         .stateIn(
             scope = viewModelScope,

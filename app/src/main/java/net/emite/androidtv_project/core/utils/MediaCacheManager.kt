@@ -17,20 +17,32 @@ import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Gestor de caché para recursos multimedia (imágenes y videos).
+ * Se encarga de descargar videos a almacenamiento local y precargar imágenes usando Coil.
+ * 
+ * @property context Contexto de la aplicación.
+ * @property okHttpClient Cliente HTTP para la descarga de archivos grandes (videos).
+ */
 @Singleton
 class MediaCacheManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val okHttpClient: OkHttpClient
 ) {
     private val TAG = "MediaCacheManager"
+    
+    /** 
+     * Directorio de caché específico para los medios del slideshow.
+     */
     private val cacheDir = File(context.cacheDir, "slideshow_media").apply {
         if (!exists()) mkdirs()
     }
 
     /**
-     * Descarga y cachea los items del slideshow.
-     * @param items Lista de items a cachear.
-     * @param onProgress Callback para informar del progreso (actual, total).
+     * Descarga y cachea de forma asíncrona los elementos del slideshow.
+     * 
+     * @param items Lista de [SlideshowItem] a procesar.
+     * @param onProgress Función callback que informa del progreso (elementos procesados, total).
      */
     suspend fun cacheItems(
         items: List<SlideshowItem>,
@@ -51,10 +63,12 @@ class MediaCacheManager @Inject constructor(
         }
     }
 
+    /**
+     * Descarga un video al almacenamiento local si no existe o si el MD5 no coincide.
+     */
     private suspend fun downloadVideo(item: SlideshowItem) {
         val localFile = getLocalFileForItem(item)
         
-        // Si el archivo ya existe, podríamos verificar el MD5 si es necesario
         if (localFile.exists()) {
             if (item.md5 != null && verifyMd5(localFile, item.md5)) {
                 Log.d(TAG, "Vídeo ya en caché y MD5 verificado: ${item.id}")
@@ -81,30 +95,43 @@ class MediaCacheManager @Inject constructor(
         Log.d(TAG, "Vídeo descargado: ${localFile.absolutePath}")
     }
 
+    /**
+     * Precarga una imagen utilizando la biblioteca Coil.
+     */
     private suspend fun preloadImage(item: SlideshowItem) {
         Log.d(TAG, "Precargando imagen con Coil: ${item.mediaUrl}")
         val request = ImageRequest.Builder(context)
             .data(item.mediaUrl)
             .build()
-        // Coil se encarga de la caché interna (disco y memoria)
         context.imageLoader.execute(request)
     }
 
+    /**
+     * Obtiene la referencia al archivo local donde se almacena (o almacenará) un item.
+     * @param item El elemento del slideshow.
+     * @return Objeto [File] apuntando a la ruta local.
+     */
     fun getLocalFileForItem(item: SlideshowItem): File {
         val extension = item.mediaUrl.substringAfterLast('.', "tmp")
         return File(cacheDir, "${item.id}.$extension")
     }
 
+    /**
+     * Verifica si un elemento multimedia ya se encuentra disponible en la caché local.
+     * @param item El elemento a comprobar.
+     * @return true si está cacheado, false en caso contrario.
+     */
     fun isItemCached(item: SlideshowItem): Boolean {
         if (item.type == MediaType.IMAGE) {
-            // Para imágenes, confiamos en Coil, pero para este flujo 
-            // asumimos que si pasó por cacheItems ya está "lista"
             return true 
         }
         val file = getLocalFileForItem(item)
         return file.exists()
     }
 
+    /**
+     * Verifica la integridad de un archivo comparando su MD5.
+     */
     private fun verifyMd5(file: File, expectedMd5: String): Boolean {
         try {
             val digest = MessageDigest.getInstance("MD5")
@@ -118,8 +145,10 @@ class MediaCacheManager @Inject constructor(
     }
 
     /**
-     * Elimina del almacenamiento local los archivos que ya no están presentes en el JSON.
-     * @param activeItems Lista de items actualmente activos en el slideshow.
+     * Elimina del almacenamiento local los archivos de video que ya no están presentes en la lista activa.
+     * Ayuda a mantener el uso de disco optimizado.
+     * 
+     * @param activeItems Lista de [SlideshowItem] actualmente configurados.
      */
     suspend fun cleanUpUnusedMedia(activeItems: List<SlideshowItem>) = withContext(Dispatchers.IO) {
         Log.d(TAG, "Iniciando limpieza de medios obsoletos...")
