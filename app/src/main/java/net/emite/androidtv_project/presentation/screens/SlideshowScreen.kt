@@ -1,9 +1,5 @@
 package net.emite.androidtv_project.presentation.screens
 
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
-import android.content.pm.ActivityInfo
 import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ContentTransform
@@ -94,20 +90,6 @@ fun SlideshowScreen(
         focusRequester.requestFocus()
     }
 
-    // Aplica la orientación de pantalla (Horizontal/Vertical) a la Activity de Android
-    LaunchedEffect(orientation) {
-        val activity = context.findActivity()
-        if (activity != null) {
-            val requestedOrientation = if (orientation == "V") {
-                ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
-            } else {
-                ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-            }
-            Log.d("SlideshowScreen", "Cambiando orientación de pantalla a: $orientation -> requestedOrientation=$requestedOrientation")
-            activity.requestedOrientation = requestedOrientation
-        }
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -178,17 +160,29 @@ fun SlideshowScreen(
                     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                         val configuration = LocalConfiguration.current
                         val isPortrait = configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
+                        val shouldRotateContent = orientation == "V"
+                        val slideshowModifier = if (shouldRotateContent) {
+                            Modifier
+                                .size(width = maxHeight, height = maxWidth)
+                                .graphicsLayer { rotationZ = 90f }
+                        } else {
+                            Modifier.fillMaxSize()
+                        }
                         LaunchedEffect(orientation, isPortrait, maxWidth, maxHeight) {
-                            val expectedPortrait = orientation == "V"
-                            if (expectedPortrait != isPortrait) {
+                            if (shouldRotateContent && isPortrait) {
                                 Log.w(
                                     "SlideshowScreen",
-                                    "La orientación física aplicada no coincide con la esperada. expectedPortrait=$expectedPortrait appliedPortrait=$isPortrait viewport=${maxWidth}x${maxHeight}"
+                                    "Modo V activo con TV en portrait nativo. Se mantiene rotación de contenido 90° por compatibilidad."
+                                )
+                            } else if (!shouldRotateContent && isPortrait) {
+                                Log.w(
+                                    "SlideshowScreen",
+                                    "Modo H activo, pero la TV informa portrait. Revisar configuración del dispositivo."
                                 )
                             } else {
                                 Log.d(
                                     "SlideshowScreen",
-                                    "Orientación aplicada correctamente. expectedPortrait=$expectedPortrait appliedPortrait=$isPortrait viewport=${maxWidth}x${maxHeight}"
+                                    "Render orientado por contenido. orientation=$orientation, appliedPortrait=$isPortrait, viewport=${maxWidth}x${maxHeight}"
                                 )
                             }
                         }
@@ -202,7 +196,7 @@ fun SlideshowScreen(
                                 )
                             },
                             label = "SlideshowTransition",
-                            modifier = Modifier.fillMaxSize()
+                            modifier = slideshowModifier
                         ) { item ->
                             item?.let {
                                 Box(
@@ -353,13 +347,4 @@ fun NetworkWarningBadge(message: String) {
             }
         }
     }
-}
-
-/**
- * Función de extensión para encontrar la [Activity] desde un [Context].
- */
-fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
 }
