@@ -10,9 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.*
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Text
@@ -41,12 +39,6 @@ class MainActivity : ComponentActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         
         setContent {
-            val config by mainViewModel.config.collectAsState()
-            val configuration = LocalConfiguration.current
-            
-            val isVertical = config?.isVertical ?: false
-            val isInverted = config?.isInverted ?: false
-            
             AndroidTVProjectTheme {
                 Box(
                     modifier = Modifier
@@ -54,22 +46,9 @@ class MainActivity : ComponentActivity() {
                         .background(DarkBackground),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Contenedor dinámico que aplica rotación si la configuración lo requiere.
-                    // En modo vertical, intercambia ancho y alto y aplica una rotación de 90 grados.
-                    Box(
-                        modifier = if (isVertical) {
-                            Modifier
-                                .size(
-                                    width = configuration.screenHeightDp.dp,
-                                    height = configuration.screenWidthDp.dp
-                                )
-                                .graphicsLayer {
-                                    rotationZ = if (isInverted) -90f else 90f
-                                }
-                        } else {
-                            Modifier.fillMaxSize()
-                        }
-                    ) {
+                    // Renderiza siempre a pantalla completa. La orientación física se gestiona
+                    // desde SlideshowScreen con requestedOrientation de la Activity.
+                    Box(modifier = Modifier.fillMaxSize()) {
                         val hasInstance by mainViewModel.hasInstance.collectAsState()
                         var showBootDebug by remember { mutableStateOf(false) }
                         var lastBackClickTime by remember { mutableLongStateOf(0L) }

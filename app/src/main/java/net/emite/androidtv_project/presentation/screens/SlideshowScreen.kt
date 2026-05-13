@@ -16,6 +16,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -51,6 +52,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import net.emite.androidtv_project.R
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -96,12 +98,13 @@ fun SlideshowScreen(
     LaunchedEffect(orientation) {
         val activity = context.findActivity()
         if (activity != null) {
-            Log.d("SlideshowScreen", "Cambiando orientación de pantalla a: $orientation")
-            activity.requestedOrientation = if (orientation == "V") {
-                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            val requestedOrientation = if (orientation == "V") {
+                ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
             } else {
-                ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
             }
+            Log.d("SlideshowScreen", "Cambiando orientación de pantalla a: $orientation -> requestedOrientation=$requestedOrientation")
+            activity.requestedOrientation = requestedOrientation
         }
     }
 
@@ -172,41 +175,60 @@ fun SlideshowScreen(
 
             is SlideshowUiState.Success -> {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    // Transición suave entre elementos (Fade In/Out)
-                    AnimatedContent(
-                        targetState = currentItem,
-                        transitionSpec = {
-                            fadeIn(animationSpec = tween(800)) togetherWith fadeOut(
-                                animationSpec = tween(800)
-                            )
-                        },
-                        label = "SlideshowTransition",
-                        modifier = Modifier.fillMaxSize()
-                    ) { item ->
-                        item?.let {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                when (it.type) {
-                                    MediaType.IMAGE -> {
-                                        AsyncImage(
-                                            model = viewModel.getLocalUri(it),
-                                            contentDescription = null,
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentScale = ContentScale.Crop
-                                        )
-                                    }
+                    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                        val configuration = LocalConfiguration.current
+                        val isPortrait = configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
+                        LaunchedEffect(orientation, isPortrait, maxWidth, maxHeight) {
+                            val expectedPortrait = orientation == "V"
+                            if (expectedPortrait != isPortrait) {
+                                Log.w(
+                                    "SlideshowScreen",
+                                    "La orientación física aplicada no coincide con la esperada. expectedPortrait=$expectedPortrait appliedPortrait=$isPortrait viewport=${maxWidth}x${maxHeight}"
+                                )
+                            } else {
+                                Log.d(
+                                    "SlideshowScreen",
+                                    "Orientación aplicada correctamente. expectedPortrait=$expectedPortrait appliedPortrait=$isPortrait viewport=${maxWidth}x${maxHeight}"
+                                )
+                            }
+                        }
 
-                                    MediaType.VIDEO -> {
-                                        VideoPlayer(
-                                            mediaUrl = viewModel.getLocalUri(it),
-                                            modifier = Modifier.fillMaxSize(),
-                                            onVideoEnded = viewModel::onMediaVideoEnded
-                                        )
+                        // Transición suave entre elementos (Fade In/Out)
+                        AnimatedContent(
+                            targetState = currentItem,
+                            transitionSpec = {
+                                fadeIn(animationSpec = tween(800)) togetherWith fadeOut(
+                                    animationSpec = tween(800)
+                                )
+                            },
+                            label = "SlideshowTransition",
+                            modifier = Modifier.fillMaxSize()
+                        ) { item ->
+                            item?.let {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    when (it.type) {
+                                        MediaType.IMAGE -> {
+                                            AsyncImage(
+                                                model = viewModel.getLocalUri(it),
+                                                contentDescription = null,
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        }
+
+                                        MediaType.VIDEO -> {
+                                            VideoPlayer(
+                                                mediaUrl = viewModel.getLocalUri(it),
+                                                modifier = Modifier.fillMaxSize(),
+                                                onVideoEnded = viewModel::onMediaVideoEnded
+                                            )
+                                        }
                                     }
                                 }
-                            }
+                            } 
                         }
                     }
 
@@ -244,7 +266,7 @@ fun SplashScreenContent(
             painter = painterResource(id = R.drawable.wappa_banner_tv),
             contentDescription = "Wappa TV Splash",
             modifier = Modifier.fillMaxSize(),
-            contentScale = if (isPortrait) ContentScale.FillHeight else ContentScale.Crop
+            contentScale = if (isPortrait) ContentScale.Crop else ContentScale.Crop
         )
 
         // Capa de oscurecimiento para mejorar la lectura de los textos blancos
