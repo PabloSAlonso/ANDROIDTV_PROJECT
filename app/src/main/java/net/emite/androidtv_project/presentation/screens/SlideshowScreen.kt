@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -160,11 +161,11 @@ fun SlideshowScreen(
                     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                         val configuration = LocalConfiguration.current
                         val isPortrait = configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
-                        val shouldRotateContent = orientation == "V"
+                        val shouldRotateContent = orientation == "H"
                         val slideshowModifier = if (shouldRotateContent) {
                             Modifier
                                 .size(width = maxHeight, height = maxWidth)
-                                .graphicsLayer { rotationZ = 90f }
+                                .graphicsLayer{ rotationZ = 90f }
                         } else {
                             Modifier.fillMaxSize()
                         }

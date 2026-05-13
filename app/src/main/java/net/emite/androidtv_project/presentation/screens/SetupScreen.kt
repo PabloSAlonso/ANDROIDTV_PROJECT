@@ -115,50 +115,6 @@ fun SetupScreen(
                 onDismissRequest = { menuExpanded = false },
                 modifier = Modifier.background(Color(0xFF4A0000))
             ) {
-                val currentConfig = config
-                // Opción para activar el modo vertical
-                DropdownMenuItem(
-                    text = {
-                        Column {
-                            androidx.compose.material3.Text("Modo Vertical", color = Color.White)
-                            androidx.compose.material3.Text(
-                                "Gira la pantalla 90º para montajes verticales",
-                                fontSize = 10.sp,
-                                color = Color.Gray
-                            )
-                        }
-                    },
-                    trailingIcon = {
-                        androidx.compose.material3.Checkbox(
-                            checked = currentConfig?.isVertical ?: false,
-                            onCheckedChange = null
-                        )
-                    },
-                    onClick = { viewModel.toggleVerticalMode() }
-                )
-                
-                // Opción para invertir la orientación vertical (solo visible si el modo vertical está activo)
-                if (currentConfig?.isVertical == true) {
-                    DropdownMenuItem(
-                        text = {
-                            Column {
-                                androidx.compose.material3.Text("Invertir Orientación", color = Color.White)
-                                androidx.compose.material3.Text(
-                                    "Cambia el sentido del giro (Izquierda/Derecha)",
-                                    fontSize = 10.sp,
-                                    color = Color.Gray
-                                )
-                            }
-                        },
-                        trailingIcon = {
-                            androidx.compose.material3.Checkbox(
-                                checked = currentConfig.isInverted,
-                                onCheckedChange = null
-                            )
-                        },
-                        onClick = { viewModel.toggleInvertedMode() }
-                    )
-                }
                 
                 // Opción para minimizar la aplicación
                 DropdownMenuItem(
