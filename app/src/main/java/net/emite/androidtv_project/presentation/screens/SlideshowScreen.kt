@@ -1,9 +1,5 @@
 package net.emite.androidtv_project.presentation.screens
 
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
-import android.content.pm.ActivityInfo
 import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ContentTransform
@@ -16,6 +12,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -51,6 +48,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import net.emite.androidtv_project.R
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -90,19 +88,6 @@ fun SlideshowScreen(
     // Solicita el foco para capturar eventos de teclado/mando
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
-    }
-
-    // Aplica la orientación de pantalla (Horizontal/Vertical) a la Activity de Android
-    LaunchedEffect(orientation) {
-        val activity = context.findActivity()
-        if (activity != null) {
-            Log.d("SlideshowScreen", "Cambiando orientación de pantalla a: $orientation")
-            activity.requestedOrientation = if (orientation == "V") {
-                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            } else {
-                ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-            }
-        }
     }
 
     Box(
@@ -172,41 +157,72 @@ fun SlideshowScreen(
 
             is SlideshowUiState.Success -> {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    // Transición suave entre elementos (Fade In/Out)
-                    AnimatedContent(
-                        targetState = currentItem,
-                        transitionSpec = {
-                            fadeIn(animationSpec = tween(800)) togetherWith fadeOut(
-                                animationSpec = tween(800)
-                            )
-                        },
-                        label = "SlideshowTransition",
-                        modifier = Modifier.fillMaxSize()
-                    ) { item ->
-                        item?.let {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                when (it.type) {
-                                    MediaType.IMAGE -> {
-                                        AsyncImage(
-                                            model = viewModel.getLocalUri(it),
-                                            contentDescription = null,
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentScale = ContentScale.Crop
-                                        )
-                                    }
+                    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                        val configuration = LocalConfiguration.current
+                        val isPortrait = configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
+                        val shouldRotateContent = orientation == "V"
+                        val slideshowModifier = if (shouldRotateContent) {
+                            Modifier
+                                .size(width = maxHeight, height = maxWidth)
+                                .graphicsLayer { rotationZ = 90f }
+                        } else {
+                            Modifier.fillMaxSize()
+                        }
+                        LaunchedEffect(orientation, isPortrait, maxWidth, maxHeight) {
+                            if (shouldRotateContent && isPortrait) {
+                                Log.w(
+                                    "SlideshowScreen",
+                                    "Modo V activo con TV en portrait nativo. Se mantiene rotación de contenido 90° por compatibilidad."
+                                )
+                            } else if (!shouldRotateContent && isPortrait) {
+                                Log.w(
+                                    "SlideshowScreen",
+                                    "Modo H activo, pero la TV informa portrait. Revisar configuración del dispositivo."
+                                )
+                            } else {
+                                Log.d(
+                                    "SlideshowScreen",
+                                    "Render orientado por contenido. orientation=$orientation, appliedPortrait=$isPortrait, viewport=${maxWidth}x${maxHeight}"
+                                )
+                            }
+                        }
 
-                                    MediaType.VIDEO -> {
-                                        VideoPlayer(
-                                            mediaUrl = viewModel.getLocalUri(it),
-                                            modifier = Modifier.fillMaxSize(),
-                                            onVideoEnded = viewModel::onMediaVideoEnded
-                                        )
+                        // Transición suave entre elementos (Fade In/Out)
+                        AnimatedContent(
+                            targetState = currentItem,
+                            transitionSpec = {
+                                fadeIn(animationSpec = tween(800)) togetherWith fadeOut(
+                                    animationSpec = tween(800)
+                                )
+                            },
+                            label = "SlideshowTransition",
+                            modifier = slideshowModifier
+                        ) { item ->
+                            item?.let {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    when (it.type) {
+                                        MediaType.IMAGE -> {
+                                            AsyncImage(
+                                                model = viewModel.getLocalUri(it),
+                                                contentDescription = null,
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        }
+
+                                        MediaType.VIDEO -> {
+                                            VideoPlayer(
+                                                mediaUrl = viewModel.getLocalUri(it),
+                                                modifier = Modifier.fillMaxSize(),
+                                                onVideoEnded = viewModel::onMediaVideoEnded
+                                            )
+                                        }
                                     }
                                 }
-                            }
+                            } 
                         }
                     }
 
@@ -244,7 +260,7 @@ fun SplashScreenContent(
             painter = painterResource(id = R.drawable.wappa_banner_tv),
             contentDescription = "Wappa TV Splash",
             modifier = Modifier.fillMaxSize(),
-            contentScale = if (isPortrait) ContentScale.FillHeight else ContentScale.Crop
+            contentScale = if (isPortrait) ContentScale.Crop else ContentScale.Crop
         )
 
         // Capa de oscurecimiento para mejorar la lectura de los textos blancos
@@ -331,13 +347,4 @@ fun NetworkWarningBadge(message: String) {
             }
         }
     }
-}
-
-/**
- * Función de extensión para encontrar la [Activity] desde un [Context].
- */
-fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
 }

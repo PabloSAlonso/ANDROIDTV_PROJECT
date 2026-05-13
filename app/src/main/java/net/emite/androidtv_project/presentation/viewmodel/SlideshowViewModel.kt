@@ -86,7 +86,7 @@ class SlideshowViewModel @Inject constructor(
         viewModelScope.launch {
             val config = configRepository.getConfig().firstOrNull()
             if (config != null) {
-                _orientation.value = config.orientation
+                _orientation.value = normalizeOrientation(config.orientation)
                 Log.d(TAG, "Cargando slideshow para instancia: ${config.instancia}, orientación cacheada: ${config.orientation}")
                 val result = slideshowRepository.getSlideshowConfig(config.instancia)
                 result.fold(
@@ -105,9 +105,10 @@ class SlideshowViewModel @Inject constructor(
                                 mediaCacheManager.cleanUpUnusedMedia(items)
                                 
                                 // Actualizar orientación si ha cambiado en el JSON remoto
-                                if (slideshowConfig.orientation != _orientation.value) {
-                                    _orientation.value = slideshowConfig.orientation
-                                    configRepository.saveConfig(config.copy(orientation = slideshowConfig.orientation))
+                                val normalizedRemoteOrientation = normalizeOrientation(slideshowConfig.orientation)
+                                if (normalizedRemoteOrientation != _orientation.value) {
+                                    _orientation.value = normalizedRemoteOrientation
+                                    configRepository.saveConfig(config.copy(orientation = normalizedRemoteOrientation))
                                 }
 
                                 // Retardo visual para que el usuario vea el banner de carga finalizado
@@ -257,6 +258,10 @@ class SlideshowViewModel @Inject constructor(
         } else {
             item.mediaUrl
         }
+    }
+
+    private fun normalizeOrientation(rawOrientation: String?): String {
+        return if (rawOrientation?.uppercase() == "V") "V" else "H"
     }
 
     /**
