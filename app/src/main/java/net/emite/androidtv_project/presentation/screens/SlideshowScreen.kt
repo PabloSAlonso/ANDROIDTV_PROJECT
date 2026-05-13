@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -161,11 +162,14 @@ fun SlideshowScreen(
                     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                         val configuration = LocalConfiguration.current
                         val isPortrait = configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
-                        val shouldRotateContent = orientation == "H"
+                        val shouldRotateContent = orientation == "V"
                         val slideshowModifier = if (shouldRotateContent) {
                             Modifier
-                                .size(width = maxHeight, height = maxWidth)
-                                .graphicsLayer{ rotationZ = 90f }
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    rotationZ = 90f
+                                    scaleX = maxHeight.value / maxWidth.value
+                                    scaleY = maxWidth.value / maxHeight.value }
                         } else {
                             Modifier.fillMaxSize()
                         }
