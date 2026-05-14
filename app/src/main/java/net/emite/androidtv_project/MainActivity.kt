@@ -1,6 +1,7 @@
 package net.emite.androidtv_project
 
 import android.os.Bundle
+import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.viewModels
@@ -80,6 +81,8 @@ class MainActivity : ComponentActivity() {
                     
                     val configuration = LocalConfiguration.current
                     val screenConfig = remember(configuration, isVertical) {
+                        Log.d("MainActivity", "Actualizando ScreenConfig: vertical=$isVertical, " +
+                                "width=${configuration.screenWidthDp}, height=${configuration.screenHeightDp}")
                         ScreenConfig(
                             isVerticalMode = isVertical,
                             viewportWidth = configuration.screenWidthDp,

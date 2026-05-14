@@ -1,6 +1,7 @@
 package net.emite.androidtv_project.presentation.slideshow.components
 
 import android.app.ActivityManager
+import android.util.Log
 import android.content.Context
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -50,6 +51,8 @@ fun SmartSlideImage(
             if (width > 0 && height > 0 && width.isFinite() && height.isFinite()) {
                 val intWidth = width.toInt()
                 val intHeight = height.toInt()
+                Log.d("SmartSlideImage", "Imagen cargada con éxito: ${item.uri}, " +
+                        "dimensiones: ${intWidth}x${intHeight}")
                 resolvedWidth = intWidth
                 resolvedHeight = intHeight
                 onImageLoaded?.invoke(intWidth, intHeight)
