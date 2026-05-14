@@ -23,6 +23,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import net.emite.androidtv_project.presentation.screens.SetupScreen
 import net.emite.androidtv_project.presentation.screens.SlideshowScreen
 import net.emite.androidtv_project.presentation.theme.AndroidTVProjectTheme
+import net.emite.androidtv_project.presentation.theme.DarkBackground
 import net.emite.androidtv_project.presentation.viewmodel.MainViewModel
 import net.emite.androidtv_project.presentation.viewmodel.SlideshowViewModel
 import net.emite.androidtv_project.presentation.slideshow.model.ScreenConfig
@@ -50,7 +51,6 @@ class MainActivity : ComponentActivity() {
         
         lifecycleScope.launch {
             rotationGuard.intrusionDetected
-                .distinctUntilChanged()
                 .collect { intrusion ->
                     when (intrusion) {
                         is SystemRotationIntrusion.None -> Unit
