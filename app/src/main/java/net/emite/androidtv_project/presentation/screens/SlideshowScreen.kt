@@ -1,13 +1,6 @@
 package net.emite.androidtv_project.presentation.screens
 
 import android.util.Log
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.ContentTransform
-import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
@@ -57,15 +50,16 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
-import coil.compose.AsyncImage
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.emite.androidtv_project.domain.model.MediaType
-import net.emite.androidtv_project.presentation.components.VideoPlayer
 import net.emite.androidtv_project.presentation.theme.DarkBackground
 import net.emite.androidtv_project.presentation.viewmodel.SlideshowUiState
 import net.emite.androidtv_project.presentation.viewmodel.SlideshowViewModel
+import net.emite.androidtv_project.presentation.slideshow.SlideshowContainer
+import net.emite.androidtv_project.presentation.slideshow.model.ScreenConfig
+import net.emite.androidtv_project.presentation.slideshow.model.SlideMediaItem
 
 /**
  * Pantalla principal del carrusel (slideshow).
@@ -76,6 +70,7 @@ import net.emite.androidtv_project.presentation.viewmodel.SlideshowViewModel
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun SlideshowScreen(
+    screenConfig: ScreenConfig,
     viewModel: SlideshowViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -157,46 +152,21 @@ fun SlideshowScreen(
 
                 is SlideshowUiState.Success -> {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        // El escalado y la rotación ahora se gestionan globalmente en MainActivity
-                        val slideshowModifier = Modifier.fillMaxSize()
-
-                        // Transición suave entre elementos (Fade In/Out)
-                        AnimatedContent(
-                            targetState = currentItem,
-                            transitionSpec = {
-                                fadeIn(animationSpec = tween(800)) togetherWith fadeOut(
-                                    animationSpec = tween(800)
-                                )
-                            },
-                            label = "SlideshowTransition",
-                            modifier = slideshowModifier
-                        ) { item ->
-                            item?.let {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    when (it.type) {
-                                        MediaType.IMAGE -> {
-                                            AsyncImage(
-                                                model = viewModel.getLocalUri(it),
-                                                contentDescription = null,
-                                                modifier = Modifier.fillMaxSize(),
-                                                contentScale = ContentScale.Crop
-                                            )
-                                        }
-
-                                        MediaType.VIDEO -> {
-                                            VideoPlayer(
-                                                mediaUrl = viewModel.getLocalUri(it),
-                                                modifier = Modifier.fillMaxSize(),
-                                                onVideoEnded = viewModel::onMediaVideoEnded
-                                            )
-                                        }
-                                    }
+                        val slideMediaItem = remember(currentItem) {
+                            currentItem?.let {
+                                if (it.type == MediaType.IMAGE) {
+                                    SlideMediaItem.Image(uri = viewModel.getLocalUri(it))
+                                } else {
+                                    SlideMediaItem.Video(uri = viewModel.getLocalUri(it))
                                 }
-                            } 
+                            }
                         }
+
+                        SlideshowContainer(
+                            currentItem = slideMediaItem,
+                            screenConfig = screenConfig,
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
 
                     // Aviso de red no bloqueante (esquina superior derecha)
@@ -233,7 +203,7 @@ fun SplashScreenContent(
             painter = painterResource(id = R.drawable.wappa_banner_tv),
             contentDescription = "Wappa TV Splash",
             modifier = Modifier.fillMaxSize(),
-            contentScale = if (isPortrait) ContentScale.Crop else ContentScale.Crop
+            contentScale = if (isPortrait) ContentScale.Fit else ContentScale.Crop
         )
 
         // Capa de oscurecimiento para mejorar la lectura de los textos blancos

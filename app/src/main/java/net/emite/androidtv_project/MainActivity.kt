@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.*
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Text
@@ -21,6 +23,7 @@ import net.emite.androidtv_project.presentation.screens.SlideshowScreen
 import net.emite.androidtv_project.presentation.theme.AndroidTVProjectTheme
 import net.emite.androidtv_project.presentation.theme.DarkBackground
 import net.emite.androidtv_project.presentation.viewmodel.MainViewModel
+import net.emite.androidtv_project.presentation.slideshow.model.ScreenConfig
 
 /**
  * Actividad principal de la aplicación Android TV.
@@ -52,6 +55,15 @@ class MainActivity : ComponentActivity() {
                     val isVertical = config?.isVertical ?: false
                     val isInverted = config?.isInverted ?: false
                     
+                    val configuration = LocalConfiguration.current
+                    val screenConfig = remember(configuration, isVertical) {
+                        ScreenConfig(
+                            isVerticalMode = isVertical,
+                            viewportWidth = configuration.screenWidthDp,
+                            viewportHeight = configuration.screenHeightDp
+                        )
+                    }
+                    
                     val rotationAngle = when {
                         isVertical && isInverted -> 270f
                         isVertical -> 90f
@@ -63,6 +75,7 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                             .graphicsLayer {
                                 rotationZ = rotationAngle
+                                transformOrigin = TransformOrigin.Center
                                 scaleX = maxHeight.value / maxWidth.value
                                 scaleY = maxWidth.value / maxHeight.value
                             }
@@ -120,7 +133,7 @@ class MainActivity : ComponentActivity() {
                                     SetupScreen()
                                 }
                                 true -> {
-                                    SlideshowScreen()
+                                    SlideshowScreen(screenConfig = screenConfig)
                                 }
                             }
                         }
