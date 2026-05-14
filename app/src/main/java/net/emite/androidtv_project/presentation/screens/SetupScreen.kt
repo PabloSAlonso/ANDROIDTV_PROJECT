@@ -3,6 +3,7 @@ package net.emite.androidtv_project.presentation.screens
 import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -36,6 +37,7 @@ import androidx.tv.material3.Text
 import net.emite.androidtv_project.presentation.viewmodel.SetupViewModel
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.focusable
 import androidx.compose.ui.res.painterResource
 import net.emite.androidtv_project.R
 import kotlin.system.exitProcess
@@ -124,7 +126,37 @@ fun SetupScreen(
                         (context as? Activity)?.moveTaskToBack(true)
                     }
                 )
-                
+
+                // Alternar Modo Vertical
+                DropdownMenuItem(
+                    text = { androidx.compose.material3.Text("Modo Vertical (90°)", color = Color.White) },
+                    trailingIcon = {
+                        Checkbox(
+                            checked = config?.isVertical ?: false,
+                            onCheckedChange = null // El click lo gestiona el MenuItem
+                        )
+                    },
+                    onClick = {
+                        viewModel.toggleVerticalMode()
+                    }
+                )
+
+                // Alternar Inversión (solo si vertical está activo)
+                if (config?.isVertical == true) {
+                    DropdownMenuItem(
+                        text = { androidx.compose.material3.Text("Invertir Rotación (270°)", color = Color.White) },
+                        trailingIcon = {
+                            Checkbox(
+                                checked = config?.isInverted ?: false,
+                                onCheckedChange = null
+                            )
+                        },
+                        onClick = {
+                            viewModel.toggleInvertedMode()
+                        }
+                    )
+                }
+
                 // Opción para cerrar la aplicación
                 DropdownMenuItem(
                     text = { androidx.compose.material3.Text("Cerrar app completamente", color = Color.White) },

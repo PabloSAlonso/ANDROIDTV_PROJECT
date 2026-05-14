@@ -64,8 +64,13 @@ class SetupViewModel @Inject constructor(
             val current = config.value ?: Config(instancia = "")
             val newVertical = !current.isVertical
             val newInverted = if (!newVertical) false else current.isInverted
+            val newOrientation = if (newVertical) "V" else "H"
             Log.d("SetupVM", "Toggling vertical: $newVertical (inverted: $newInverted)")
-            configRepository.saveConfig(current.copy(isVertical = newVertical, isInverted = newInverted))
+            configRepository.saveConfig(current.copy(
+                isVertical = newVertical, 
+                isInverted = newInverted,
+                orientation = newOrientation
+            ))
         }
     }
 

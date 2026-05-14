@@ -85,8 +85,6 @@ fun SlideshowScreen(
     val focusRequester = remember { FocusRequester() }
     var logoutJob by remember { mutableStateOf<Job?>(null) }
 
-    val orientation by viewModel.orientation.collectAsState()
-
     // Solicita el foco para capturar eventos de teclado/mando
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
@@ -157,40 +155,10 @@ fun SlideshowScreen(
                 )
             }
 
-            is SlideshowUiState.Success -> {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                        val configuration = LocalConfiguration.current
-                        val isPortrait = configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
-                        val shouldRotateContent = orientation == "V"
-                        val slideshowModifier = if (shouldRotateContent) {
-                            Modifier
-                                .fillMaxSize()
-                                .graphicsLayer {
-                                    rotationZ = 90f
-                                    scaleX = maxHeight.value / maxWidth.value
-                                    scaleY = maxWidth.value / maxHeight.value }
-                        } else {
-                            Modifier.fillMaxSize()
-                        }
-                        LaunchedEffect(orientation, isPortrait, maxWidth, maxHeight) {
-                            if (shouldRotateContent && isPortrait) {
-                                Log.w(
-                                    "SlideshowScreen",
-                                    "Modo V activo con TV en portrait nativo. Se mantiene rotación de contenido 90° por compatibilidad."
-                                )
-                            } else if (!shouldRotateContent && isPortrait) {
-                                Log.w(
-                                    "SlideshowScreen",
-                                    "Modo H activo, pero la TV informa portrait. Revisar configuración del dispositivo."
-                                )
-                            } else {
-                                Log.d(
-                                    "SlideshowScreen",
-                                    "Render orientado por contenido. orientation=$orientation, appliedPortrait=$isPortrait, viewport=${maxWidth}x${maxHeight}"
-                                )
-                            }
-                        }
+                is SlideshowUiState.Success -> {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // El escalado y la rotación ahora se gestionan globalmente en MainActivity
+                        val slideshowModifier = Modifier.fillMaxSize()
 
                         // Transición suave entre elementos (Fade In/Out)
                         AnimatedContent(
@@ -239,7 +207,7 @@ fun SlideshowScreen(
             }
         }
     }
-}
+
 
 /**
  * Contenido de la pantalla de bienvenida / precarga.

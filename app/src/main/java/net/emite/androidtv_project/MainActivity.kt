@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.ExperimentalTvMaterial3Api
@@ -40,17 +41,37 @@ class MainActivity : ComponentActivity() {
         
         setContent {
             AndroidTVProjectTheme {
-                Box(
+                val config by mainViewModel.config.collectAsState()
+                
+                BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(DarkBackground),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Renderiza siempre a pantalla completa. La orientación física se gestiona
-                    // desde SlideshowScreen con requestedOrientation de la Activity.
-                    Box(modifier = Modifier.fillMaxSize()) {
+                    val isVertical = config?.isVertical ?: false
+                    val isInverted = config?.isInverted ?: false
+                    
+                    val rotationAngle = when {
+                        isVertical && isInverted -> 270f
+                        isVertical -> 90f
+                        else -> 0f
+                    }
+                    
+                    val mainModifier = if (isVertical) {
+                        Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                rotationZ = rotationAngle
+                                scaleX = maxHeight.value / maxWidth.value
+                                scaleY = maxWidth.value / maxHeight.value
+                            }
+                    } else {
+                        Modifier.fillMaxSize()
+                    }
+
+                    Box(modifier = mainModifier) {
                         val hasInstance by mainViewModel.hasInstance.collectAsState()
-                        var showBootDebug by remember { mutableStateOf(false) }
                         var lastBackClickTime by remember { mutableLongStateOf(0L) }
                         var backClickCount by remember { mutableIntStateOf(0) }
 
@@ -59,14 +80,13 @@ class MainActivity : ComponentActivity() {
                                 .fillMaxSize()
                                 .onKeyEvent { event ->
                                     // Lógica para detectar 5 pulsaciones rápidas del botón "Back"
-                                    // Esto podría usarse para menús de depuración ocultos.
                                     if (event.key == Key.Back && 
                                         event.type == KeyEventType.KeyUp) {
                                         val currentTime = System.currentTimeMillis()
                                         if (currentTime - lastBackClickTime < 1000L) {
                                             backClickCount++
                                             if (backClickCount >= 5) {
-                                                showBootDebug = true
+                                                // Opcional: navegar a setup o mostrar debug
                                                 backClickCount = 0
                                             }
                                         } else {
@@ -79,7 +99,7 @@ class MainActivity : ComponentActivity() {
                         ) {
                             when (hasInstance) {
                                 null -> {
-                                    // Estado de carga inicial mientras se recupera la configuración local
+                                    // Estado de carga inicial (Splash Screen)
                                     Box(
                                         modifier = Modifier
                                             .fillMaxSize()
@@ -97,11 +117,9 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                                 false -> {
-                                    // Si no hay instancia configurada, ir a la pantalla de configuración
                                     SetupScreen()
                                 }
                                 true -> {
-                                    // Si hay instancia, iniciar el carrusel de diapositivas
                                     SlideshowScreen()
                                 }
                             }
