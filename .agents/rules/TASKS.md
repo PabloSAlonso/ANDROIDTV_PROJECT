@@ -3,136 +3,171 @@ trigger: model_decision
 description: Tareas del proyecto en android tv
 ---
 
-Implement a smart image/video scaling system for an Android TV Jetpack Compose slideshow app 
-that supports a vertical signage mode (global 90° rotation via graphicsLayer in MainActivity).
+We have an Android TV Jetpack Compose slideshow app with a manual vertical mode that rotates 
+the entire UI 90° using `graphicsLayer(rotationZ = 90f)` in MainActivity. The app already has:
 
-## Context
+- `ScreenConfig` data class with `isVerticalMode`, `effectiveWidth/Height/Ratio`
+- `SlideshowViewModel` with `isVerticalMode: StateFlow<Boolean>` as single source of truth
+- `rememberScreenConfig()` composable that uses `remember(isVerticalMode)` (ignores Configuration)
+- `requestedOrientation = SCREEN_ORIENTATION_LANDSCAPE` set in onCreate and manifest
 
-The app displays image and video slideshows on Android TV. A "vertical mode" rotates the entire 
-UI 90° using `graphicsLayer(rotationZ = 90f)` and manual scaleX/scaleY applied globally from 
-MainActivity. The key problem: Compose's logical viewport does NOT update when graphicsLayer 
-rotates it, so a 1920×1080 screen rotated 90° still reports 1920×1080 as its dimensions instead 
-of 1080×1920. This causes incorrect ContentScale decisions for portrait images.
+## Problem
 
-## Architecture to implement
+Some Android TV devices (Sony Bravia, TCL with Google TV, Fire TV with motion sensor) have 
+orientation sensors that can fire and override our manual rotation. When the sensor acts on 
+its own, three things can break:
 
-### 1. Data models — create in `ui/slideshow/model/`
+1. The system rotates the Activity independently of our graphicsLayer rotation, resulting in 
+   a double rotation (180° total) or a cancelled rotation (0° when we want 90°)
+2. `Configuration.orientation` changes to PORTRAIT even though we locked landscape, because 
+   some custom TV ROMs ignore `requestedOrientation` for sensor events
+3. There is no way to know it happened unless we explicitly detect the discrepancy between 
+   what we ordered (ViewModel) and what the system reports (Configuration)
 
-`SlideMediaItem` sealed class:
-- `Image(uri: Uri, intrinsicWidth: Int = 0, intrinsicHeight: Int = 0)`
-- `Video(uri: Uri, intrinsicWidth: Int = 0, intrinsicHeight: Int = 0)`
+## Solution to implement
 
-`ScreenConfig` data class:
-- `isVerticalMode: Boolean`
-- `viewportWidth: Int`, `viewportHeight: Int`
-- Computed properties: `effectiveWidth`, `effectiveHeight`, `effectiveRatio`
-  (swap width/height when isVerticalMode = true)
+### 1. `SystemRotationIntrusion` sealed class
+Create in `ui/slideshow/guard/SystemRotationIntrusion.kt`:
+- `object None`
+- `object SensorOverrodeManualMode`  ← sensor fired while our vertical mode was active
+- `object SensorForcedPortrait`      ← sensor fired while we were in normal landscape mode
 
-### 2. SmartMediaScaler — create in `ui/slideshow/util/SmartMediaScaler.kt`
+### 2. `SystemRotationGuard` class
+Create in `ui/slideshow/guard/SystemRotationGuard.kt`:
 
-Singleton object with two methods:
+Constructor receives `activity: ComponentActivity` and `viewModel: SlideshowViewModel`.
 
-`resolveContentScale(imageWidth, imageHeight, screenConfig): ContentScale`
-Logic:
-- If NOT vertical mode:
-  - imageRatio >= 1f → ContentScale.Crop
-  - imageRatio < 1f  → ContentScale.FillBounds
-- If vertical mode:
-  - imageRatio < 1f  → ContentScale.FillWidth
-  - imageRatio >= 1f → ContentScale.Fit
+Internal state:
+- `ourIntent: StateFlow<Boolean>` = `viewModel.isVerticalMode`
+- `systemOrientation: MutableStateFlow<Int>` initialized from 
+  `activity.resources.configuration.orientation`
+- `lastConfig: Configuration?` to detect if ONLY orientation changed (sensor) vs other 
+  fields changed too (HDMI hotplug, DPI change — NOT a sensor intrusion)
 
-`resolveContentScalePrecise(imageWidth, imageHeight, screenConfig): ContentScale`
-Logic based on ratioDelta = imageRatio / screenRatio:
-- ratioDelta > 1.5f  → ContentScale.FillHeight
-- ratioDelta > 0.85f → ContentScale.Crop
-- ratioDelta > 0.5f  → ContentScale.FillWidth
-- else               → ContentScale.Fit
+Public `intrusionDetected: StateFlow<SystemRotationIntrusion>` built with:
+```kotlin
+combine(ourIntent, systemOrientation) { weWantVertical, sysOrientation ->
+    val systemThinkPortrait = sysOrientation == Configuration.ORIENTATION_PORTRAIT
+    when {
+        weWantVertical && systemThinkPortrait  -> SystemRotationIntrusion.SensorOverrodeManualMode
+        !weWantVertical && systemThinkPortrait -> SystemRotationIntrusion.SensorForcedPortrait
+        else                                  -> SystemRotationIntrusion.None
+    }
+}
+.stateIn(activity.lifecycleScope, SharingStarted.WhileSubscribed(5_000), 
+         SystemRotationIntrusion.None)
+```
 
-### 3. SmartSlideImage composable — create in `ui/slideshow/components/SmartSlideImage.kt`
+Public `onConfigurationChanged(newConfig: Configuration)` method:
+- Compare `newConfig.orientation` vs current `systemOrientation.value`
+- Only update `systemOrientation` and treat as potential intrusion if ONLY orientation changed:
+  `orientationChanged && newConfig.screenWidthDp == lastConfig?.screenWidthDp 
+   && newConfig.densityDpi == lastConfig?.densityDpi`
+- If other fields changed too, it is a legitimate system event (HDMI hotplug, MultiWindow),
+  update `lastConfig` but do NOT emit as intrusion
+- Always update `lastConfig = newConfig`
 
-- Parameters: `item: SlideMediaItem.Image`, `screenConfig: ScreenConfig`, 
-  `modifier: Modifier`, `usePreciseScaling: Boolean = false`,
-  `onImageLoaded: ((Int, Int) -> Unit)? = null`
-- Uses `var resolvedWidth/Height` state initialized from `item.intrinsicWidth/Height`
-- Uses `derivedStateOf` to compute `contentScale` reactively from resolved dimensions + screenConfig
-- Calls the appropriate `SmartMediaScaler` method based on `usePreciseScaling`
-- Uses Coil `AsyncImage` with:
-  - `Precision.EXACT`
-  - `CachePolicy.ENABLED` for both disk and memory
-  - `crossfade(true)`
-  - `Size.ORIGINAL` (unless device RAM < 2GB, then use target size)
-  - `filterQuality = FilterQuality.High`
-  - `onSuccess` callback that reads `painter.intrinsicSize` and updates `resolvedWidth/Height`
+### 3. Extend `SlideshowViewModel`
+Add to the existing ViewModel:
+```kotlin
+private val _sensorIntrusionCount = MutableStateFlow(0)
+val sensorIntrusionCount: StateFlow<Int> = _sensorIntrusionCount.asStateFlow()
 
-Helper `rememberImageRequest(uri)` private composable using `remember(uri)`.
+private val _lastIntrusion = MutableStateFlow<SystemRotationIntrusion>(
+    SystemRotationIntrusion.None
+)
+val lastIntrusion: StateFlow<SystemRotationIntrusion> = _lastIntrusion.asStateFlow()
 
-### 4. SmartSlideVideo composable — create in `ui/slideshow/components/SmartSlideVideo.kt`
+fun reportSensorIntrusion(intrusion: SystemRotationIntrusion) {
+    _sensorIntrusionCount.update { it + 1 }
+    _lastIntrusion.value = intrusion
+}
+```
 
-- Parameters: `item: SlideMediaItem.Video`, `screenConfig: ScreenConfig`, `modifier: Modifier`
-- Uses ExoPlayer with `repeatMode = REPEAT_MODE_ONE`, `volume = 0f`
-- `LaunchedEffect(item.uri)` sets media item, prepares, and plays
-- `DisposableEffect` releases player on dispose
-- Computes `resizeMode` (AspectRatioFrameLayout constants) using the same logic as SmartMediaScaler:
-  - Not vertical + horizontal video → RESIZE_MODE_ZOOM
-  - Vertical mode + portrait video  → RESIZE_MODE_FILL
-  - Otherwise                       → RESIZE_MODE_FIT
-- Renders via `AndroidView` with `PlayerView(useController = false)`
+Do NOT add any sensor reading logic to the ViewModel. It must remain unaware of Android APIs.
+The ViewModel only receives reports; the detection lives in SystemRotationGuard.
 
-### 5. SlideshowContainer composable — create in `ui/slideshow/SlideshowContainer.kt`
+### 4. Modify `MainActivity`
 
-- Parameters: `currentItem: SlideMediaItem`, `screenConfig: ScreenConfig`, `modifier: Modifier`
-- Uses `Crossfade(targetState = currentItem, animationSpec = tween(800, easing = LinearEasing))`
-- Delegates to `SmartSlideImage` or `SmartSlideVideo` based on sealed class type
+Add these changes to the existing MainActivity (do not rewrite unrelated code):
 
-### 6. MainActivity integration
+a) Instantiate guard after super.onCreate:
+```kotlin
+private lateinit var rotationGuard: SystemRotationGuard
+// in onCreate, after requestedOrientation:
+rotationGuard = SystemRotationGuard(this, viewModel)
+```
 
-- Read `isVerticalMode` from a `SlideshowViewModel` StateFlow (use a simple `MutableStateFlow` 
-  for now with a hardcoded initial value of `false`)
-- Build `ScreenConfig` using `LocalConfiguration.current` inside a `remember(configuration, 
-  isVerticalMode)` block
-- Apply `graphicsLayer { if (isVerticalMode) { rotationZ = 90f; val s = size.width/size.height; 
-  scaleX = s; scaleY = s } }` on the root `Box`
-- Pass `screenConfig` down to `SlideshowContainer`
-- Do NOT read `LocalConfiguration` directly inside media composables — always use the passed 
-  `ScreenConfig`
+b) Collect intrusion events in a coroutine launched in onCreate (after setContent is fine):
+```kotlin
+lifecycleScope.launch {
+    rotationGuard.intrusionDetected
+        .distinctUntilChanged()
+        .collect { intrusion ->
+            when (intrusion) {
+                is SystemRotationIntrusion.None -> Unit
+                else -> {
+                    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                    viewModel.reportSensorIntrusion(intrusion)
+                }
+            }
+        }
+}
+```
 
-## Technical requirements
+c) Override `onConfigurationChanged` and forward to guard:
+```kotlin
+override fun onConfigurationChanged(newConfig: Configuration) {
+    super.onConfigurationChanged(newConfig)
+    rotationGuard.onConfigurationChanged(newConfig)
+}
+```
 
-- Language: Kotlin with Jetpack Compose
-- Coil version: 2.x (`io.coil-kt:coil-compose`)
-- ExoPlayer: `androidx.media3:media3-exoplayer` + `media3-ui`
-- Minimum API: 21, target: Android TV (API 28+)
-- All composables must be `@Composable` functions in their own files
-- Use `remember`, `derivedStateOf`, `LaunchedEffect`, `DisposableEffect` appropriately
-- No business logic inside composables — SmartMediaScaler must be a pure object/utility
+d) Verify `AndroidManifest.xml` already has (add if missing):
+```xml
+android:screenOrientation="landscape"
+android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+```
 
-## File structure to create
-
+### 5. File structure
 ui/
 slideshow/
-model/
-SlideMediaItem.kt
-ScreenConfig.kt
-util/
-SmartMediaScaler.kt
-components/
-SmartSlideImage.kt
-SmartSlideVideo.kt
-SlideshowContainer.kt
-MainActivity.kt (modify existing)
+guard/
+SystemRotationIntrusion.kt   ← new
+SystemRotationGuard.kt       ← new
+SlideshowViewModel.kt          ← extend (add intrusion tracking fields)
+MainActivity.kt                    ← extend (add guard instantiation + collection)
+AndroidManifest.xml                ← verify/add configChanges attribute
+
+## Contracts to preserve
+
+- `SlideshowViewModel.isVerticalMode` remains the single source of truth for rotation intent.
+  Never update it from SystemRotationGuard or from onConfigurationChanged.
+- `rememberScreenConfig()` must keep `remember(isVerticalMode)` as its only key.
+  Do not add `configuration` back as a key — that would undo the protection already in place.
+- SystemRotationGuard must NOT hold a reference to any Composable or Context beyond 
+  Activity lifecycle. Use `activity.lifecycleScope` for coroutines, not `GlobalScope`.
+- The correction (`requestedOrientation = LANDSCAPE`) must happen in the collect lambda 
+  inside MainActivity, not inside SystemRotationGuard. The guard only detects and reports.
 
 ## Do NOT
 
-- Do not use `ContentScale.Crop` unconditionally
-- Do not read screen dimensions directly inside `SmartSlideImage` or `SmartSlideVideo`
-- Do not use `LocalConfiguration.current` inside media composables
-- Do not create a new ExoPlayer instance on every recomposition
-- Do not use `Size.ORIGINAL` in Coil if you can determine the target composable size
+- Do not read `OrientationEventListener` inside Composables
+- Do not add `configuration` as a key to `rememberScreenConfig()`
+- Do not create a new `SystemRotationGuard` on every recomposition
+- Do not call `viewModel.setVerticalMode()` from the guard — the guard never changes intent,
+  only reports that the system tried to override it
+- Do not use `GlobalScope` for the intrusion collection coroutine
 
 ## Verify after implementation
 
-1. A 1080×1920 image in vertical mode fills the screen without excessive zoom
-2. A 1920×1080 image in vertical mode shows Fit scaling (small letterbox acceptable)
-3. A 1920×1080 image in horizontal mode uses Crop (no black bars)
-4. Switching `isVerticalMode` in the ViewModel triggers recomposition and rescaling
-5. ExoPlayer is released when the composable leaves composition
+1. With `isVerticalMode = true`: rotate the device physically (or use ADB 
+   `adb shell settings put system accelerometer_rotation 1` then tilt) → 
+   `intrusionDetected` emits `SensorOverrodeManualMode` and `requestedOrientation` 
+   is immediately reset to LANDSCAPE
+2. With `isVerticalMode = false`: same physical rotation → emits `SensorForcedPortrait` 
+   and resets to LANDSCAPE
+3. Simulate HDMI hotplug via ADB (`adb shell wm size 1920x1080` then reset) → 
+   guard does NOT emit intrusion (screenWidthDp changed, so it is filtered out)
+4. `sensorIntrusionCount` increments on each intrusion, never on legitimate config changes
+5. No recomposition triggered by the guard itself — all corrections happen at Activity level

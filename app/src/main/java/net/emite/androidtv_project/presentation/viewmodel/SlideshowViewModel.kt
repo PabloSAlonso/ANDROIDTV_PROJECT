@@ -11,6 +11,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import net.emite.androidtv_project.core.utils.SlideshowSyncUtils
@@ -22,6 +25,7 @@ import net.emite.androidtv_project.domain.model.SlideshowConfig
 import net.emite.androidtv_project.domain.model.SlideshowItem
 import net.emite.androidtv_project.domain.repository.ConfigRepository
 import net.emite.androidtv_project.domain.repository.SlideshowRepository
+import net.emite.androidtv_project.presentation.slideshow.guard.SystemRotationIntrusion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import coil.imageLoader
@@ -64,6 +68,27 @@ class SlideshowViewModel @Inject constructor(
      * Orientación de la pantalla ("H" o "V").
      */
     val orientation = _orientation.asStateFlow()
+
+    /**
+     * Flow derivado que indica si estamos en modo vertical de forma booleana (usado como source of truth por guard).
+     */
+    val isVerticalMode: StateFlow<Boolean> = _orientation
+        .map { it == "V" }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    private val _sensorIntrusionCount = MutableStateFlow(0)
+    val sensorIntrusionCount: StateFlow<Int> = _sensorIntrusionCount.asStateFlow()
+
+    private val _lastIntrusion = MutableStateFlow<SystemRotationIntrusion>(
+        SystemRotationIntrusion.None
+    )
+    val lastIntrusion: StateFlow<SystemRotationIntrusion> = _lastIntrusion.asStateFlow()
+
+    fun reportSensorIntrusion(intrusion: SystemRotationIntrusion) {
+        _sensorIntrusionCount.value += 1
+        _lastIntrusion.value = intrusion
+        Log.w(TAG, "Sensor Intrusion Detectada: $intrusion. Total: ${_sensorIntrusionCount.value}")
+    }
 
     /**
      * Canal para recibir señales de finalización de video desde la UI.

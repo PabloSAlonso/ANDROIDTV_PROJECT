@@ -3,8 +3,10 @@ package net.emite.androidtv_project
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
@@ -21,9 +23,12 @@ import dagger.hilt.android.AndroidEntryPoint
 import net.emite.androidtv_project.presentation.screens.SetupScreen
 import net.emite.androidtv_project.presentation.screens.SlideshowScreen
 import net.emite.androidtv_project.presentation.theme.AndroidTVProjectTheme
-import net.emite.androidtv_project.presentation.theme.DarkBackground
 import net.emite.androidtv_project.presentation.viewmodel.MainViewModel
+import net.emite.androidtv_project.presentation.viewmodel.SlideshowViewModel
 import net.emite.androidtv_project.presentation.slideshow.model.ScreenConfig
+import net.emite.androidtv_project.presentation.slideshow.guard.SystemRotationGuard
+import net.emite.androidtv_project.presentation.slideshow.guard.SystemRotationIntrusion
+import androidx.activity.compose.setContent
 
 /**
  * Actividad principal de la aplicación Android TV.
@@ -32,13 +37,31 @@ import net.emite.androidtv_project.presentation.slideshow.model.ScreenConfig
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    
     private val mainViewModel: MainViewModel by viewModels()
+    private val slideshowViewModel: SlideshowViewModel by viewModels()
+    private lateinit var rotationGuard: SystemRotationGuard
 
     @OptIn(ExperimentalTvMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        rotationGuard = SystemRotationGuard(this, slideshowViewModel)
+        
+        lifecycleScope.launch {
+            rotationGuard.intrusionDetected
+                .distinctUntilChanged()
+                .collect { intrusion ->
+                    when (intrusion) {
+                        is SystemRotationIntrusion.None -> Unit
+                        else -> {
+                            requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                            slideshowViewModel.reportSensorIntrusion(intrusion)
+                        }
+                    }
+                }
+        }
+
         // Mantiene la pantalla encendida permanentemente mientras la app está activa
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         
@@ -140,6 +163,13 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (::rotationGuard.isInitialized) {
+            rotationGuard.onConfigurationChanged(newConfig)
         }
     }
 }
