@@ -28,6 +28,31 @@ fun SmartSlideVideo(
         ExoPlayer.Builder(context).build().apply {
             repeatMode = Player.REPEAT_MODE_ONE
             volume = 0f
+            
+            addListener(object : Player.Listener {
+                override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                    android.util.Log.e("SmartSlideVideo", "Player error: ${error.message}", error)
+                }
+
+                override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+                    android.util.Log.d("SmartSlideVideo", "Video size changed: width=${videoSize.width}, height=${videoSize.height}, unappliedRotationDegrees=${videoSize.unappliedRotationDegrees}, pixelWidthHeightRatio=${videoSize.pixelWidthHeightRatio}")
+                }
+                
+                override fun onRenderedFirstFrame() {
+                    android.util.Log.d("SmartSlideVideo", "Rendered first frame")
+                }
+                
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    val stateStr = when(playbackState) {
+                        Player.STATE_IDLE -> "STATE_IDLE"
+                        Player.STATE_BUFFERING -> "STATE_BUFFERING"
+                        Player.STATE_READY -> "STATE_READY"
+                        Player.STATE_ENDED -> "STATE_ENDED"
+                        else -> "UNKNOWN"
+                    }
+                    android.util.Log.d("SmartSlideVideo", "Playback state changed: $stateStr")
+                }
+            })
         }
     }
     
@@ -62,13 +87,16 @@ fun SmartSlideVideo(
 
     AndroidView(
         factory = { ctx ->
-            PlayerView(ctx).apply {
-                useController = false
+            val view = android.view.LayoutInflater.from(ctx).inflate(net.emite.androidtv_project.R.layout.view_video_player, null) as PlayerView
+            view.apply {
                 player = exoPlayer
                 layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
+                addOnLayoutChangeListener { _, left, top, right, bottom, _, _, _, _ ->
+                    android.util.Log.d("SmartSlideVideo", "PlayerView layout: width=${right - left}, height=${bottom - top}")
+                }
             }
         },
         update = { playerView ->
