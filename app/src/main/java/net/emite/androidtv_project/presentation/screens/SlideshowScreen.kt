@@ -129,7 +129,7 @@ fun SlideshowScreen(
     ) {
         when (val state = uiState) {
             is SlideshowUiState.Loading -> {
-                SplashScreenContent(progress = null)
+                SplashScreenContent(progress = null, message = state.message)
             }
 
             is SlideshowUiState.Preloading -> {
@@ -188,7 +188,8 @@ fun SlideshowScreen(
 fun SplashScreenContent(
     progress: Float? = null,
     current: Int? = null,
-    total: Int? = null
+    total: Int? = null,
+    message: String? = null
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isPortrait = configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
@@ -244,7 +245,7 @@ fun SplashScreenContent(
                 )
             } else {
                 Text(
-                    text = "Conectando con el servidor...",
+                    text = message ?: "Conectando con el servidor...",
                     style = MaterialTheme.typography.bodyLarge,
                     color = Color.White,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center

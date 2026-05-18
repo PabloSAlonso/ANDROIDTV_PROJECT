@@ -52,7 +52,7 @@ class SlideshowViewModel @Inject constructor(
 
     private val TAG = "SlideshowVM"
 
-    private val _uiState = MutableStateFlow<SlideshowUiState>(SlideshowUiState.Loading)
+    private val _uiState = MutableStateFlow<SlideshowUiState>(SlideshowUiState.Loading())
     /**
      * Estado actual de la interfaz de usuario.
      */
@@ -118,8 +118,13 @@ class SlideshowViewModel @Inject constructor(
                 // 1. Priorizar datos en local antes que descargarlos
                 val localConfig = slideshowRepository.getLocalCachedConfig(config.instancia)
                 if (localConfig != null && localConfig.items.isNotEmpty()) {
-                    Log.d(TAG, "Contenido local encontrado. Cargando inmediatamente...")
+                    Log.d(TAG, "Contenido local encontrado. Mostrando Splash Screen por 5s...")
                     items = localConfig.items
+                    
+                    // La splash Screen debe estar presente un minimo de tiempo para hacer publicidad de la app
+                    _uiState.value = SlideshowUiState.Loading("Cargando imágenes...")
+                    delay(5000L)
+                    
                     _uiState.value = SlideshowUiState.Success(localConfig)
                     startSlideshowLoop()
                     
@@ -411,7 +416,7 @@ class SlideshowViewModel @Inject constructor(
  */
 sealed class SlideshowUiState {
     /** Cargando configuración inicial. */
-    object Loading : SlideshowUiState()
+    data class Loading(val message: String = "Conectando con el servidor...") : SlideshowUiState()
     /** Descargando y preparando archivos multimedia. */
     data class Preloading(val current: Int, val total: Int) : SlideshowUiState()
     /** Slideshow activo y reproduciéndose correctamente. */
