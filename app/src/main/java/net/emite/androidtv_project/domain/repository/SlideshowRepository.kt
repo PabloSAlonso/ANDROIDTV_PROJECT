@@ -23,7 +23,8 @@ interface SlideshowRepository {
 
     /**
      * Obtiene la última configuración del slideshow almacenada localmente en caché.
+     * @param instancia Identificador de la instancia del dispositivo.
      * @return [SlideshowConfig] si existe en caché, null en caso contrario.
      */
-    suspend fun getLocalCachedConfig(): SlideshowConfig?
+    suspend fun getLocalCachedConfig(instancia: String): SlideshowConfig?
 }

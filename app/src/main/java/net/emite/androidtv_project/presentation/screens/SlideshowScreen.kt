@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
@@ -216,19 +217,21 @@ fun SplashScreenContent(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 60.dp),
+                .padding(bottom = 60.dp)
+                .fillMaxWidth(if (isPortrait) 0.8f else 0.4f),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (progress != null && current != null && total != null) {
                 Text(
                     text = "Sincronizando contenidos...",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = Color.White
+                    color = Color.White,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
                 Spacer(modifier = Modifier.padding(8.dp))
                 LinearProgressIndicator(
                     progress = { progress },
-                    modifier = Modifier.width(400.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     color = Color.White,
                     trackColor = Color.White.copy(alpha = 0.2f)
                 )
@@ -236,17 +239,19 @@ fun SplashScreenContent(
                 Text(
                     text = "$current / $total descargados",
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.7f)
+                    color = Color.White.copy(alpha = 0.7f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
             } else {
                 Text(
                     text = "Conectando con el servidor...",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = Color.White
+                    color = Color.White,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
                 Spacer(modifier = Modifier.padding(8.dp))
                 LinearProgressIndicator(
-                    modifier = Modifier.width(400.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     color = Color.White,
                     trackColor = Color.White.copy(alpha = 0.2f)
                 )

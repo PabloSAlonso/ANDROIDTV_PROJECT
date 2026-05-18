@@ -122,13 +122,14 @@ class SlideshowRepositoryImpl @Inject constructor(
 
     /**
      * Obtiene la configuración guardada localmente si existe.
+     * @param instancia Identificador de la instancia del dispositivo.
      * @return [SlideshowConfig] o null si no hay caché disponible.
      */
-    override suspend fun getLocalCachedConfig(): SlideshowConfig? {
+    override suspend fun getLocalCachedConfig(instancia: String): SlideshowConfig? {
         return try {
             val localEntity = cachedJsonDao.getCachedJson()
             if (localEntity != null) {
-                parseJsonToConfig(localEntity.rawJson, "demo")
+                parseJsonToConfig(localEntity.rawJson, instancia)
             } else null
         } catch (e: Exception) {
             null

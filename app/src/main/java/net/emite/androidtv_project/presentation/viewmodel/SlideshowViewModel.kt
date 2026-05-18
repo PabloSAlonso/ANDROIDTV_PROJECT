@@ -114,6 +114,27 @@ class SlideshowViewModel @Inject constructor(
             if (config != null) {
                 _orientation.value = normalizeOrientation(config.orientation)
                 Log.d(TAG, "Cargando slideshow para instancia: ${config.instancia}, orientación cacheada: ${config.orientation}")
+                
+                // 1. Priorizar datos en local antes que descargarlos
+                val localConfig = slideshowRepository.getLocalCachedConfig(config.instancia)
+                if (localConfig != null && localConfig.items.isNotEmpty()) {
+                    Log.d(TAG, "Contenido local encontrado. Cargando inmediatamente...")
+                    items = localConfig.items
+                    _uiState.value = SlideshowUiState.Success(localConfig)
+                    startSlideshowLoop()
+                    
+                    // Comprobar si hay cambios en segundo plano
+                    viewModelScope.launch {
+                        checkForUpdatesBackground(config.instancia)
+                    }
+                    
+                    // Iniciar bucle de refresco periódico
+                    startRefreshLoop(config.instancia)
+                    return@launch
+                }
+                
+                // 2. Si no hay datos locales, descargar mediante la web
+                Log.d(TAG, "No hay contenido local. Descargando desde el servidor...")
                 val result = slideshowRepository.getSlideshowConfig(config.instancia)
                 result.fold(
                     onSuccess = { slideshowConfig ->
@@ -166,6 +187,36 @@ class SlideshowViewModel @Inject constructor(
             } else {
                 Log.e(TAG, "No se encontró configuración en la base de datos")
                 _uiState.value = SlideshowUiState.Error("No hay configuración guardada")
+            }
+        }
+    }
+
+    /**
+     * Comprueba si hay actualizaciones en segundo plano al iniciar con datos locales.
+     */
+    private suspend fun checkForUpdatesBackground(instancia: String) {
+        Log.d(TAG, "[BACKGROUND_CHECK] Comprobando actualizaciones...")
+        when (val result = slideshowRepository.checkForUpdates(instancia)) {
+            is RefreshResult.Updated -> {
+                Log.i(TAG, "[BACKGROUND_CHECK] Cambios detectados. Aplicando actualización silenciosa...")
+                mediaCacheManager.cacheItems(result.config.items) { _, _ -> }
+                mediaCacheManager.cleanUpUnusedMedia(result.config.items)
+                
+                items = result.config.items
+                val currentState = _uiState.value
+                if (currentState is SlideshowUiState.Success) {
+                    _uiState.value = currentState.copy(
+                        config = result.config,
+                        networkWarning = null
+                    )
+                }
+                Log.i(TAG, "[BACKGROUND_CHECK] Actualización silenciosa completada.")
+            }
+            is RefreshResult.NoChange -> {
+                Log.d(TAG, "[BACKGROUND_CHECK] Sin cambios.")
+            }
+            is RefreshResult.NetworkError -> {
+                Log.w(TAG, "[BACKGROUND_CHECK] Error de red: ${result.message}")
             }
         }
     }
