@@ -30,6 +30,7 @@ import net.emite.androidtv_project.presentation.viewmodel.SlideshowViewModel
 import net.emite.androidtv_project.presentation.slideshow.model.ScreenConfig
 import net.emite.androidtv_project.presentation.slideshow.guard.SystemRotationGuard
 import net.emite.androidtv_project.presentation.slideshow.guard.SystemRotationIntrusion
+import net.emite.androidtv_project.presentation.slideshow.util.undeformed
 import androidx.activity.compose.setContent
 
 /**
@@ -79,14 +80,13 @@ class MainActivity : ComponentActivity() {
                     val isVertical = config?.isVertical ?: false
                     val isInverted = config?.isInverted ?: false
                     
-                    val configuration = LocalConfiguration.current
-                    val screenConfig = remember(configuration, isVertical) {
+                    val screenConfig = remember(isVertical, maxWidth, maxHeight) {
                         Log.d("MainActivity", "Actualizando ScreenConfig: vertical=$isVertical, " +
-                                "width=${configuration.screenWidthDp}, height=${configuration.screenHeightDp}")
+                                "width=${maxWidth.value.toInt()}, height=${maxHeight.value.toInt()}")
                         ScreenConfig(
                             isVerticalMode = isVertical,
-                            viewportWidth = configuration.screenWidthDp,
-                            viewportHeight = configuration.screenHeightDp
+                            viewportWidth = maxWidth.value.toInt(),
+                            viewportHeight = maxHeight.value.toInt()
                         )
                     }
                     
@@ -145,7 +145,10 @@ class MainActivity : ComponentActivity() {
                                             .background(DarkBackground),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Column(
+                                            modifier = Modifier.undeformed(screenConfig),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
                                             androidx.compose.foundation.Image(
                                                 painter = androidx.compose.ui.res.painterResource(id = R.drawable.wappa_banner_tv),
                                                 contentDescription = "Logo",
@@ -156,7 +159,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                                 false -> {
-                                    SetupScreen()
+                                    SetupScreen(screenConfig = screenConfig)
                                 }
                                 true -> {
                                     SlideshowScreen(screenConfig = screenConfig)

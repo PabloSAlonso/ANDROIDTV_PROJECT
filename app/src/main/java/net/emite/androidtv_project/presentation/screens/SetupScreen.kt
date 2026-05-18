@@ -35,6 +35,8 @@ import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import net.emite.androidtv_project.presentation.viewmodel.SetupViewModel
+import net.emite.androidtv_project.presentation.slideshow.model.ScreenConfig
+import net.emite.androidtv_project.presentation.slideshow.util.undeformed
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.focusable
@@ -56,6 +58,7 @@ import kotlin.system.exitProcess
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun SetupScreen(
+    screenConfig: ScreenConfig,
     viewModel: SetupViewModel = hiltViewModel()
 ) {
     var instancia by remember { mutableStateOf("") }
@@ -82,6 +85,7 @@ fun SetupScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .undeformed(screenConfig)
             .background(
                 Brush.verticalGradient(
                     colors = listOf(Color(0xFF2B0000), Color(0xFF4A0000))

@@ -58,6 +58,7 @@ import net.emite.androidtv_project.domain.model.MediaType
 import net.emite.androidtv_project.presentation.theme.DarkBackground
 import net.emite.androidtv_project.presentation.viewmodel.SlideshowUiState
 import net.emite.androidtv_project.presentation.viewmodel.SlideshowViewModel
+import net.emite.androidtv_project.presentation.slideshow.util.undeformed
 import net.emite.androidtv_project.presentation.slideshow.SlideshowContainer
 import net.emite.androidtv_project.presentation.slideshow.model.ScreenConfig
 import net.emite.androidtv_project.presentation.slideshow.model.SlideMediaItem
@@ -129,7 +130,7 @@ fun SlideshowScreen(
     ) {
         when (val state = uiState) {
             is SlideshowUiState.Loading -> {
-                SplashScreenContent(progress = null, message = state.message)
+                SplashScreenContent(progress = null, message = state.message, screenConfig = screenConfig)
             }
 
             is SlideshowUiState.Preloading -> {
@@ -137,7 +138,8 @@ fun SlideshowScreen(
                 SplashScreenContent(
                     progress = progress,
                     current = state.current,
-                    total = state.total
+                    total = state.total,
+                    screenConfig = screenConfig
                 )
             }
 
@@ -172,7 +174,7 @@ fun SlideshowScreen(
 
                     // Aviso de red no bloqueante (esquina superior derecha)
                     state.networkWarning?.let { warning ->
-                        NetworkWarningBadge(message = warning)
+                        NetworkWarningBadge(message = warning, screenConfig = screenConfig)
                     }
                 }
             }
@@ -189,7 +191,8 @@ fun SplashScreenContent(
     progress: Float? = null,
     current: Int? = null,
     total: Int? = null,
-    message: String? = null
+    message: String? = null,
+    screenConfig: ScreenConfig
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isPortrait = configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
@@ -219,7 +222,8 @@ fun SplashScreenContent(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 60.dp)
-                .fillMaxWidth(if (isPortrait) 0.8f else 0.4f),
+                .fillMaxWidth(if (isPortrait) 0.8f else 0.4f)
+                .undeformed(screenConfig),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (progress != null && current != null && total != null) {
@@ -265,7 +269,7 @@ fun SplashScreenContent(
  * Indicador visual discreto que informa sobre problemas de conectividad.
  */
 @Composable
-fun NetworkWarningBadge(message: String) {
+fun NetworkWarningBadge(message: String, screenConfig: ScreenConfig) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -274,7 +278,8 @@ fun NetworkWarningBadge(message: String) {
     ) {
         Surface(
             color = Color(0xCC000000),
-            shape = RoundedCornerShape(8.dp)
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.undeformed(screenConfig)
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
