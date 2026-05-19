@@ -54,6 +54,7 @@ import androidx.tv.material3.Text
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
 import net.emite.androidtv_project.domain.model.MediaType
 import net.emite.androidtv_project.presentation.theme.DarkBackground
 import net.emite.androidtv_project.presentation.viewmodel.SlideshowUiState
@@ -87,13 +88,27 @@ fun SlideshowScreen(
         focusRequester.requestFocus()
     }
 
+    // Observar eventos de Toast del ViewModel para forzar la descarga del JSON
+    LaunchedEffect(Unit) {
+        viewModel.toastEvent.collect { message ->
+            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(DarkBackground)
             .onKeyEvent { event ->
-                // Gestión del cierre de sesión: mantener pulsado "ATRÁS" durante 3 segundos
-                if (event.key == Key.Back || event.key == Key.Escape) {
+                if (event.key == Key.DirectionCenter || event.key == Key.Enter) {
+                    if (event.type == KeyEventType.KeyDown) {
+                        viewModel.onCenterClick()
+                        true
+                    } else {
+                        false
+                    }
+                } else if (event.key == Key.Back || event.key == Key.Escape) {
+                    // Gestión del cierre de sesión: mantener pulsado "ATRÁS" durante 3 segundos
                     when (event.type) {
                         KeyEventType.KeyDown -> {
                             if (logoutJob == null) {

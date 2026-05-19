@@ -16,6 +16,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import java.util.Calendar
 import net.emite.androidtv_project.core.utils.SlideshowSyncUtils
 import net.emite.androidtv_project.core.utils.PhpSerializerUtils
@@ -51,6 +55,15 @@ class SlideshowViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val TAG = "SlideshowVM"
+
+    private val _toastEvent = MutableSharedFlow<String>()
+    /**
+     * Canal para emitir mensajes Toast a la UI.
+     */
+    val toastEvent = _toastEvent.asSharedFlow()
+
+    private var debugClickCount = 0
+    private var debugClickJob: Job? = null
 
     private val _uiState = MutableStateFlow<SlideshowUiState>(SlideshowUiState.Loading())
     /**
@@ -407,6 +420,69 @@ class SlideshowViewModel @Inject constructor(
         Log.i(TAG, "Ejecutando cierre de sesión (Logout)")
         viewModelScope.launch {
             configRepository.clearConfig()
+        }
+    }
+
+    /**
+     * Maneja el clic en el botón central/D-Pad del mando para depuración.
+     * Al pulsar 5 veces, fuerza la descarga del JSON.
+     */
+    fun onCenterClick() {
+        debugClickCount++
+        viewModelScope.launch {
+            if (debugClickCount == 5) {
+                _toastEvent.emit("Descarga de JSON iniciada...")
+                debugClickCount = 0
+                debugClickJob?.cancel()
+                forceRefresh()
+            } else {
+                _toastEvent.emit("Debes pulsarlo ${5 - debugClickCount} veces para forzar la descarga del JSON")
+            }
+        }
+
+        // Resetear contador después de 2.5 segundos de inactividad
+        debugClickJob?.cancel()
+        debugClickJob = viewModelScope.launch {
+            delay(2500)
+            debugClickCount = 0
+        }
+    }
+
+    /**
+     * Fuerza la sincronización y descarga del JSON remoto.
+     */
+    private suspend fun forceRefresh() {
+        val config = configRepository.getConfig().firstOrNull()
+        if (config == null) {
+            _toastEvent.emit("Error: No hay configuración guardada")
+            return
+        }
+        
+        Log.i(TAG, "[FORCE_REFRESH] Iniciando comprobación manual de actualización...")
+        when (val result = slideshowRepository.checkForUpdates(config.instancia)) {
+            is RefreshResult.Updated -> {
+                Log.i(TAG, "[FORCE_REFRESH] Actualización encontrada. Descargando recursos...")
+                mediaCacheManager.cacheItems(result.config.items) { _, _ -> }
+                mediaCacheManager.cleanUpUnusedMedia(result.config.items)
+                
+                items = result.config.items
+                val currentState = _uiState.value
+                if (currentState is SlideshowUiState.Success) {
+                    _uiState.value = currentState.copy(
+                        config = result.config,
+                        networkWarning = null
+                    )
+                }
+                _toastEvent.emit("Descarga completada con éxito")
+            }
+            is RefreshResult.NoChange -> {
+                Log.i(TAG, "[FORCE_REFRESH] Sin cambios en el servidor.")
+                _toastEvent.emit("Descarga completada: no hay cambios en el JSON")
+            }
+            is RefreshResult.NetworkError -> {
+                Log.e(TAG, "[FORCE_REFRESH] Error de red: ${result.message}")
+                _toastEvent.emit("Error al descargar JSON: ${result.message}")
+            }
         }
     }
 }
