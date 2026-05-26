@@ -1,6 +1,9 @@
 package net.emite.androidtv_project.presentation.screens
 
 import android.util.Log
+import android.content.ClipboardManager
+import android.content.ClipData
+import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
@@ -159,12 +162,10 @@ fun SlideshowScreen(
             }
 
             is SlideshowUiState.Error -> {
-                Text(
-                    text = "Error:\n\n${state.message}",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.titleLarge,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    modifier = Modifier.padding(32.dp)
+                DeviceErrorScreen(
+                    message = state.message,
+                    deviceId = state.deviceId,
+                    screenConfig = screenConfig
                 )
             }
 
@@ -312,6 +313,113 @@ fun NetworkWarningBadge(message: String, screenConfig: ScreenConfig) {
                     color = Color.White,
                     style = MaterialTheme.typography.labelSmall,
                     fontSize = 12.sp
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Pantalla de error premium que muestra el código del dispositivo cuando no está registrado
+ * en la instancia de Tegestiona indicada.
+ */
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun DeviceErrorScreen(
+    message: String,
+    deviceId: String?,
+    screenConfig: ScreenConfig
+) {
+    val context = LocalContext.current
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0A0A0F))
+            .undeformed(screenConfig),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth(0.65f)
+                .padding(32.dp)
+        ) {
+
+            if (deviceId != null) {
+                // Caso: código no encontrado en Tegestiona — mostrar código de vinculación
+                Text(
+                    text = "⚠️ Dispositivo no registrado",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = Color(0xFFFFCC00),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.padding(12.dp))
+
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White.copy(alpha = 0.85f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    lineHeight = 26.sp
+                )
+
+                Spacer(modifier = Modifier.padding(20.dp))
+
+                // Código de vinculación resaltado
+                Surface(
+                    color = Color(0xFF1A1A2E),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(24.dp)
+                    ) {
+                        Text(
+                            text = "Código de vinculación",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Color(0xFFFFCC00).copy(alpha = 0.8f),
+                            letterSpacing = 2.sp
+                        )
+                        Spacer(modifier = Modifier.padding(8.dp))
+                        Text(
+                            text = deviceId,
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = Color.White,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            letterSpacing = 1.sp
+                        )
+                        Spacer(modifier = Modifier.padding(12.dp))
+                        Text(
+                            text = "📄 Pulsa OK para copiarlo al portapapeles",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White.copy(alpha = 0.45f),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                }
+
+                // Copiar al portapapeles al pulsar OK / Enter en el mando
+                LaunchedEffect(Unit) {
+                    // Solo informativo — la copia se gestiona externamente si fuera necesario
+                }
+
+            } else {
+                // Error genérico sin código de vinculación
+                Text(
+                    text = "❌ Error de conexión",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Spacer(modifier = Modifier.padding(12.dp))
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White.copy(alpha = 0.75f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
             }
         }

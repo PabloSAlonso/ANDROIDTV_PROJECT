@@ -42,6 +42,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.focusable
 import androidx.compose.ui.res.painterResource
 import net.emite.androidtv_project.R
+import net.emite.androidtv_project.core.utils.DeviceUtils
 import kotlin.system.exitProcess
 
 /**
@@ -266,6 +267,25 @@ fun SetupScreen(
                         color = Color.White
                     )
                 }
+
+                // Código único del dispositivo
+                val deviceId = remember { DeviceUtils.getDeviceId(context) }
+                androidx.compose.material3.Divider(
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    color = Color.White.copy(alpha = 0.1f)
+                )
+                Text(
+                    text = "Código de dispositivo",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+                Text(
+                    text = deviceId,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color(0xFFE53935).copy(alpha = 0.85f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
             }
         }
     }
