@@ -240,20 +240,43 @@ class SlideshowViewModel @Inject constructor(
 
     /**
      * Filtra los elementos activos basándose en la programación semanal y horaria.
+     *
+     * Convención de días de Tegestiona (PHP date('N')):
+     *   1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado, 7=Domingo
+     *
+     * Android Calendar.DAY_OF_WEEK:
+     *   SUNDAY=1, MONDAY=2, TUESDAY=3, WEDNESDAY=4, THURSDAY=5, FRIDAY=6, SATURDAY=7
+     *
+     * Conversión: (DAY_OF_WEEK - 1) da 0-6 (Dom-Sáb).
+     * Para que Domingo (Android=0) coincida con PHP ("7"), lo remapeamos a "7".
      */
     private suspend fun filterActiveItems(items: List<SlideshowItem>): List<SlideshowItem> = withContext(Dispatchers.Default) {
         val calendar = Calendar.getInstance()
-        val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK) - 1
+        val androidDay = calendar.get(Calendar.DAY_OF_WEEK) - 1   // 0=Dom, 1=Lun...6=Sáb
+        // PHP date('N'): 1=Lun...6=Sáb, 7=Dom
+        val phpDay = if (androidDay == 0) "7" else androidDay.toString()
         val currentHour = String.format("%02d", calendar.get(Calendar.HOUR_OF_DAY))
 
-        Log.d(TAG, "Filtrando ítems activos para Día: $dayOfWeek, Hora: $currentHour")
+        Log.d(TAG, "Filtrando ítems activos — Día PHP: $phpDay (Android raw: $androidDay), Hora: $currentHour")
 
         items.filter { item ->
-            val activeDays = PhpSerializerUtils.parsePhpStringArray(item.semana)
+            val activeDays  = PhpSerializerUtils.parsePhpStringArray(item.semana)
             val activeHours = PhpSerializerUtils.parsePhpStringArray(item.horas)
 
-            val isDayActive = activeDays.isEmpty() || activeDays.contains(dayOfWeek.toString())
-            val isHourActive = activeHours.isEmpty() || activeHours.contains(currentHour)
+            // Both day and hour arrays must be non‑empty and contain the current value.
+            val isDayActive  = activeDays.isNotEmpty() && activeDays.contains(phpDay)
+            val isHourActive = activeHours.isNotEmpty() && activeHours.contains(currentHour)
+
+            // Registro detallado del motivo de exclusión/inclusión.
+            if (!isDayActive) {
+                Log.d(TAG, "  Ítem ID=${item.id}: días=$activeDays (phpDay=$phpDay) → isDayActive=$isDayActive")
+            }
+            if (!isHourActive) {
+                Log.d(TAG, "  Ítem ID=${item.id}: horas=$activeHours (hora=$currentHour) → isHourActive=$isHourActive")
+            }
+            if (isDayActive && isHourActive) {
+                Log.d(TAG, "  Ítem ID=${item.id}: ACTIVO (cumple día y hora)")
+            }
 
             isDayActive && isHourActive
         }.sortedBy { it.orden }.also {
